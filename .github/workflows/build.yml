@@ -1,0 +1,117 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            sudo apt-get update
+            sudo apt-get install -y cmake g++ libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+            cmake --build build -j4
+            ctest --test-dir build --output-on-failure
+            mkdir -p dist/HappyEngineering
+            cp build/HappyEngineering dist/HappyEngineering/
+            cp README.md LICENSE dist/HappyEngineering/
+            tar -C dist -czf HappyEngineering-linux-x64.tar.gz HappyEngineering
+          } 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: log-linux-x64, path: build.log }
+      - uses: actions/upload-artifact@v4
+        with: { name: HappyEngineering-linux-x64, path: HappyEngineering-linux-x64.tar.gz }
+
+  linux-x86:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build in a 32-bit Debian container
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm -v "$PWD":/w -w /w i386/debian:bookworm linux32 bash -c '
+            set -ex
+            apt-get update
+            apt-get install -y cmake g++ git ca-certificates make libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+            file=$(uname -m); echo arch=$file
+            cmake -S . -B build32 -DCMAKE_BUILD_TYPE=Release
+            cmake --build build32 -j4
+            ctest --test-dir build32 --output-on-failure
+            mkdir -p dist/HappyEngineering
+            cp build32/HappyEngineering README.md LICENSE dist/HappyEngineering/
+            tar -C dist -czf HappyEngineering-linux-x86.tar.gz HappyEngineering
+          ' 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: log-linux-x86, path: build.log }
+      - uses: actions/upload-artifact@v4
+        with: { name: HappyEngineering-linux-x86, path: HappyEngineering-linux-x86.tar.gz }
+
+  windows:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross-compile with mingw-w64
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            sudo apt-get update
+            sudo apt-get install -y cmake mingw-w64 zip
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DHE_BUILD_TESTS=OFF \
+              -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-mingw-${{ matrix.arch }}.cmake
+            cmake --build build -j4
+            mkdir -p dist/HappyEngineering
+            cp build/HappyEngineering.exe README.md LICENSE dist/HappyEngineering/
+            (cd dist && zip -r ../HappyEngineering-windows-${{ matrix.arch }}.zip HappyEngineering)
+          } 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: log-windows-${{ matrix.arch }}, path: build.log }
+      - uses: actions/upload-artifact@v4
+        with: { name: HappyEngineering-windows-${{ matrix.arch }}, path: HappyEngineering-windows-${{ matrix.arch }}.zip }
+
+  report:
+    if: always() && github.event_name != 'pull_request'
+    needs: [linux-x64, linux-x86, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: log-*, path: logs }
+      - name: Publish logs to ci-logs branch
+        shell: bash
+        run: |
+          mkdir out && cp -r logs/* out/
+          echo "commit ${GITHUB_SHA}" > out/COMMIT
+          cd out && git init -q -b ci-logs && git add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -qm "logs for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ci-logs
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux-x64, linux-x86, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: HappyEngineering-*, path: pkg, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with: { files: pkg/* }
