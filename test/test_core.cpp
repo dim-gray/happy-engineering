@@ -335,7 +335,7 @@ static void test_system_prompt_editing() {
     CHECK(effectiveSystemPrompt("   \n\t ") == defaultSystemPrompt());
 
     // a real custom prompt is used as-is (trimmed)
-    CHECK(effectiveSystemPrompt("  esti un robot amuzant  ") == "esti un robot amuzant");
+    CHECK(effectiveSystemPrompt("  you are a funny robot  ") == "you are a funny robot");
 
     // settings round-trip preserves a multi-line custom prompt exactly
     Settings s;

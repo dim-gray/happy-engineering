@@ -12,7 +12,7 @@
 
 namespace heng {
 
-enum class Provider { OpenAI, OpenRouter, Anthropic };
+enum class Provider { OpenAI, OpenRouter, Anthropic, Custom };
 enum class Tier { Free, Pro };
 
 inline const char* providerName(Provider p) {
@@ -20,6 +20,7 @@ inline const char* providerName(Provider p) {
         case Provider::OpenAI: return "OpenAI";
         case Provider::OpenRouter: return "OpenRouter";
         case Provider::Anthropic: return "Anthropic";
+        case Provider::Custom: return "Custom";
     }
     return "?";
 }
@@ -27,6 +28,7 @@ inline const char* providerName(Provider p) {
 inline Provider providerFromName(const std::string& name) {
     if (name == "OpenRouter") return Provider::OpenRouter;
     if (name == "Anthropic") return Provider::Anthropic;
+    if (name == "Custom") return Provider::Custom;
     return Provider::OpenAI;
 }
 
@@ -51,6 +53,8 @@ inline std::vector<std::string> suggestedModels(Provider p, Tier t) {
             return t == Tier::Pro
                 ? std::vector<std::string>{"anthropic/claude-sonnet-5-5", "openai/gpt-5.1"}
                 : std::vector<std::string>{"openrouter/free"};
+        case Provider::Custom:
+            return {};
     }
     return {};
 }
@@ -60,6 +64,8 @@ struct ApiRequest {
     std::string path;        // e.g. "/v1/chat/completions"
     std::vector<std::pair<std::string, std::string>> headers;
     std::string body;        // JSON text
+    bool tls = true;         // https (true) or plain http (local servers)
+    int port = 0;            // 0 = default for the scheme
 };
 
 // An image attached to the question (sent to vision-capable models).
@@ -87,7 +93,7 @@ inline JsonValue userContent(Provider provider, const std::string& userPrompt,
     if (provider == Provider::Anthropic) {
         for (size_t i = 0; i < images.size(); ++i) {
             const ImagePart& im = images[i];
-            if (!im.label.empty()) parts.push(textPart("Atasament imagine: " + im.label));
+            if (!im.label.empty()) parts.push(textPart("Image attachment: " + im.label));
             JsonValue src = JsonValue::makeObject();
             src.set("type", JsonValue("base64"));
             src.set("media_type", JsonValue(im.mime));
@@ -102,7 +108,7 @@ inline JsonValue userContent(Provider provider, const std::string& userPrompt,
         parts.push(textPart(userPrompt));
         for (size_t i = 0; i < images.size(); ++i) {
             const ImagePart& im = images[i];
-            if (!im.label.empty()) parts.push(textPart("Atasament imagine: " + im.label));
+            if (!im.label.empty()) parts.push(textPart("Image attachment: " + im.label));
             JsonValue url = JsonValue::makeObject();
             url.set("url", JsonValue("data:" + im.mime + ";base64," + im.base64));
             JsonValue p = JsonValue::makeObject();
@@ -140,6 +146,7 @@ inline ApiRequest buildRequestWithImages(Provider provider, const std::string& m
     body.set("model", JsonValue(model));
     JsonValue content = userContent(provider, userPrompt, images);
     switch (provider) {
+        case Provider::Custom:
         case Provider::OpenAI: {
             req.host = "api.openai.com";
             req.path = "/v1/chat/completions";
@@ -162,8 +169,8 @@ inline ApiRequest buildRequestWithImages(Provider provider, const std::string& m
             req.headers = {
                 {"Authorization", "Bearer " + apiKey},
                 {"Content-Type", "application/json"},
-                {"HTTP-Referer", "https://localhost/happy-enginiring"},
-                {"X-Title", "Happy Enginiring"},
+                {"HTTP-Referer", "https://github.com/dim-gray/happy-engineering"},
+                {"X-Title", "Happy Engineering"},
             };
             JsonValue msgs = JsonValue::makeArray();
             msgs.push(message("system", JsonValue(system)));
@@ -226,10 +233,11 @@ inline ApiResult parseResponse(Provider provider, int httpStatus, const std::str
         res.error = "HTTP " + std::to_string(httpStatus) + ": " + msg;
         return res;
     }
-    if (!jsonOk) { res.error = "raspuns invalid (JSON nevalid)"; return res; }
+    if (!jsonOk) { res.error = "invalid response (not JSON)"; return res; }
 
     switch (provider) {
         case Provider::OpenAI:
+        case Provider::Custom:
         case Provider::OpenRouter: {
             const JsonValue* choices = v.find("choices");
             if (choices && choices->isArray() && !choices->arr->empty()) {
@@ -244,11 +252,11 @@ inline ApiResult parseResponse(Provider provider, int httpStatus, const std::str
                         return res;
                     }
                     std::string refusal = msg->getString("refusal");
-                    if (!refusal.empty()) { res.error = "modelul a refuzat: " + refusal; return res; }
+                    if (!refusal.empty()) { res.error = "the model refused: " + refusal; return res; }
                 }
             }
             const JsonValue* err = v.find("error");
-            res.error = err ? err->getString("message", "raspuns neasteptat") : "raspuns neasteptat de la provider";
+            res.error = err ? err->getString("message", "unexpected response") : "unexpected response from the provider";
             return res;
         }
         case Provider::Anthropic: {
@@ -267,11 +275,11 @@ inline ApiResult parseResponse(Provider provider, int httpStatus, const std::str
                 }
             }
             const JsonValue* err = v.find("error");
-            res.error = err ? err->getString("message", "raspuns neasteptat") : "raspuns neasteptat de la provider";
+            res.error = err ? err->getString("message", "unexpected response") : "unexpected response from the provider";
             return res;
         }
     }
-    res.error = "provider necunoscut";
+    res.error = "unknown provider";
     return res;
 }
 

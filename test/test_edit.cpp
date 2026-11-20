@@ -360,7 +360,7 @@ static void test_context_and_images() {
     CHECK(wc.find("gold") != std::string::npos && wc.find("0x1234") != std::string::npos);
 
     CHECK(fullSystemPrompt("").find("happy-plan") != std::string::npos);
-    CHECK(fullSystemPrompt("Esti un pirat.").find("Esti un pirat.") == 0);
+    CHECK(fullSystemPrompt("You are a pirate.").find("You are a pirate.") == 0);
 
     // provider requests with images
     std::vector<ImagePart> imgs(1);

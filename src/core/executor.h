@@ -28,6 +28,19 @@ public:
     virtual bool readAttachment(const std::string& name, std::vector<uint8_t>& out, std::string& err) = 0;
 };
 
+// Re-encodes an image so it can drop into a game file: same pixel size and
+// same container format as the original. Implemented in the app layer
+// (stb_image); the core only defines the contract so it stays testable.
+class IImageConverter {
+public:
+    virtual ~IImageConverter() {}
+    // `orig` = the game's current image file, `src` = the user's replacement.
+    // On success `out` holds the converted file; `note` is an optional remark.
+    virtual bool convert(const std::vector<uint8_t>& orig, const std::string& origName,
+                         const std::vector<uint8_t>& src, const std::string& fit,
+                         std::vector<uint8_t>& out, std::string& note, std::string& err) = 0;
+};
+
 struct ActionResult {
     bool ok = false;        // valid / succeeded
     bool skipped = false;   // not selected, so not run
@@ -46,7 +59,7 @@ inline ActionResult executeMemWrite(const PlanAction& a, const std::vector<Watch
     ActionResult r;
     const WatchEntry* w = findWatch(watch, a.label);
     if (!w) {
-        r.message = "eticheta '" + a.label + "' nu exista in lista de memorie (AI-ul poate folosi doar etichete create de tine)";
+        r.message = "label '" + a.label + "' is not in your memory watch list (the AI can only use labels you created)";
         return r;
     }
     std::vector<uint8_t> bytes;
@@ -57,24 +70,24 @@ inline ActionResult executeMemWrite(const PlanAction& a, const std::vector<Watch
     std::string what = a.label + " (" + addr + ", " + valueTypeName(w->type) + ")";
     if (!applyNow) {
         r.ok = true;
-        r.message = "va scrie " + a.value + " in " + what;
+        r.message = "will write " + a.value + " to " + what;
         return r;
     }
-    if (!mem) { r.message = "nu este conectat niciun proces; deschide fereastra Memorie pentru procesul tinta"; return r; }
+    if (!mem) { r.message = "no process is attached; open the Memory page and pick the target process"; return r; }
     std::vector<uint8_t> before;
     bool hadBefore = readValue(*mem, w->address, w->type, before);
     if (!mem->write(w->address, bytes.data(), bytes.size())) {
-        r.message = "scrierea in " + what + " a esuat (memorie protejata sau proces inchis)";
+        r.message = "writing to " + what + " failed (protected memory or the process exited)";
         return r;
     }
     r.ok = true;
-    r.message = "scris " + a.value + " in " + what +
-                (hadBefore ? " (inainte: " + formatValue(w->type, before.data()) + ")" : std::string());
+    r.message = "wrote " + a.value + " to " + what +
+                (hadBefore ? " (before: " + formatValue(w->type, before.data()) + ")" : std::string());
     return r;
 }
 
 inline ExecutionReport runPlan(const Plan& plan, const std::vector<bool>& selected, IFileStore& store,
-                               const std::vector<WatchEntry>& watch, IMemory* mem, bool applyMemory) {
+                               const std::vector<WatchEntry>& watch, IMemory* mem, bool applyMemory, IImageConverter* images = nullptr) {
     ExecutionReport rep;
     rep.results.resize(plan.actions.size());
     std::map<std::string, std::vector<uint8_t> > work;
@@ -83,8 +96,8 @@ inline ExecutionReport runPlan(const Plan& plan, const std::vector<bool>& select
     for (size_t i = 0; i < plan.actions.size(); ++i) {
         const PlanAction& a = plan.actions[i];
         ActionResult& r = rep.results[i];
-        if (i >= selected.size() || !selected[i]) { r.skipped = true; r.message = "omisa (debifata)"; continue; }
-        if (!a.error.empty()) { r.message = "invalida: " + a.error; continue; }
+        if (i >= selected.size() || !selected[i]) { r.skipped = true; r.message = "skipped (unchecked)"; continue; }
+        if (!a.error.empty()) { r.message = "invalid: " + a.error; continue; }
 
         if (a.type == ActionType::MemWrite) { r = executeMemWrite(a, watch, mem, applyMemory); continue; }
 
@@ -93,7 +106,7 @@ inline ExecutionReport runPlan(const Plan& plan, const std::vector<bool>& select
         if (it == work.end()) {
             std::vector<uint8_t> bytes;
             std::string err;
-            if (!store.readTarget(a.file, bytes, err)) { r.message = "nu pot citi " + a.file + ": " + err; continue; }
+            if (!store.readTarget(a.file, bytes, err)) { r.message = "cannot read " + a.file + ": " + err; continue; }
             it = work.insert(std::make_pair(a.file, bytes)).first;
         }
         std::vector<uint8_t>& buf = it->second;
@@ -108,7 +121,7 @@ inline ExecutionReport runPlan(const Plan& plan, const std::vector<bool>& select
             std::vector<uint8_t> attach;
             std::string err;
             if (!store.readAttachment(a.attachment, attach, err)) {
-                r.message = "nu pot citi atasamentul '" + a.attachment + "': " + err;
+                r.message = "cannot read attachment '" + a.attachment + "': " + err;
             } else {
                 ReplaceCheck c = checkReplaceFile(a.file, buf, a.attachment, attach);
                 if (!c.ok) {
@@ -116,12 +129,27 @@ inline ExecutionReport runPlan(const Plan& plan, const std::vector<bool>& select
                 } else {
                     buf.swap(attach);
                     r.ok = true;
-                    r.message = "fisierul va fi inlocuit cu " + a.attachment;
+                    r.message = "the file will be replaced with " + a.attachment;
                     r.warning = c.message;
                 }
             }
+        } else if (a.type == ActionType::ReplaceImage) {
+            std::vector<uint8_t> attach, converted;
+            std::string err, note;
+            if (!images) {
+                r.message = "image conversion is not available in this build";
+            } else if (!store.readAttachment(a.attachment, attach, err)) {
+                r.message = "cannot read attachment '" + a.attachment + "': " + err;
+            } else if (!images->convert(buf, a.file, attach, a.fit, converted, note, err)) {
+                r.message = err;
+            } else {
+                buf.swap(converted);
+                r.ok = true;
+                r.message = "image re-textured from " + a.attachment;
+                r.warning = note;
+            }
         } else {
-            r.message = "tip de actiune necunoscut";
+            r.message = "unknown action type";
         }
         if (r.ok) touched.insert(a.file);
     }

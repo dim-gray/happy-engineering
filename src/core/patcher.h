@@ -26,7 +26,7 @@ inline bool encodeForEncoding(const std::string& utf8, const std::string& enc,
                               std::vector<uint8_t>& out, std::string& err) {
     out.clear();
     if (enc == "utf16le") {
-        if (!utf8ToUtf16le(utf8, out)) { err = "textul nu este UTF-8 valid"; return false; }
+        if (!utf8ToUtf16le(utf8, out)) { err = "text is not valid UTF-8"; return false; }
         return true;
     }
     if (enc == "ascii" && !isAsciiOnly(utf8)) {
@@ -75,7 +75,7 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
     if (f.empty()) { r.message = "textul de cautat este gol"; return r; }
 
     std::vector<size_t> hits = findAllBytes(data, f, a.encoding == "utf16le" ? 2 : 1);
-    if (hits.empty()) { r.message = "textul nu a fost gasit in fisier"; return r; }
+    if (hits.empty()) { r.message = "text was not found in the file"; return r; }
     size_t total = hits.size();
     if (!a.all) hits.resize(1);
 
@@ -94,8 +94,8 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
         data.swap(out);
     } else {
         if (rep.size() > f.size()) {
-            r.message = "inlocuirea (" + std::to_string(rep.size()) + " octeti) este mai lunga decat originalul (" +
-                        std::to_string(f.size()) + "); intr-un fisier binar lungimea nu se poate schimba";
+            r.message = "the replacement (" + std::to_string(rep.size()) + " bytes) is longer than the original (" +
+                        std::to_string(f.size()) + "); the length cannot change in a binary file";
             return r;
         }
         if (rep.size() < f.size()) note = " (completat cu 0x00 pana la lungimea originala)";
@@ -113,16 +113,16 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
 
 inline PatchOutcome applyPatchBytes(std::vector<uint8_t>& data, const PlanAction& a) {
     PatchOutcome r;
-    if (a.write.empty()) { r.message = "nu exista octeti de scris"; return r; }
+    if (a.write.empty()) { r.message = "there are no bytes to write"; return r; }
     if (a.offset > data.size() || a.write.size() > data.size() - static_cast<size_t>(a.offset)) {
-        r.message = "zona de patch este in afara fisierului (dimensiune " + std::to_string(data.size()) + " octeti)";
+        r.message = "patch range is outside the file (size " + std::to_string(data.size()) + " bytes)";
         return r;
     }
     size_t off = static_cast<size_t>(a.offset);
     if (!a.expect.empty()) {
         if (std::memcmp(&data[off], a.expect.data(), a.expect.size()) != 0) {
             std::vector<uint8_t> actual(data.begin() + off, data.begin() + off + a.expect.size());
-            r.message = "octetii de la acel offset nu corespund (gasit: " + toHexBytes(actual) +
+            r.message = "bytes at that offset do not match (found: " + toHexBytes(actual) +
                         ", asteptat: " + toHexBytes(a.expect) + ")";
             return r;
         }
@@ -130,7 +130,7 @@ inline PatchOutcome applyPatchBytes(std::vector<uint8_t>& data, const PlanAction
     std::memcpy(&data[off], a.write.data(), a.write.size());
     r.ok = true;
     r.count = a.write.size();
-    r.message = std::to_string(a.write.size()) + " octeti scrisi";
+    r.message = std::to_string(a.write.size()) + " bytes written";
     return r;
 }
 
@@ -147,18 +147,18 @@ inline ReplaceCheck checkReplaceFile(const std::string& fileName, const std::vec
     ReplaceCheck c;
     std::string e1 = extensionOf(fileName), e2 = extensionOf(attachName);
     if (e1 != e2) {
-        c.message = "extensia atasamentului (." + e2 + ") difera de cea a fisierului tinta (." + e1 +
-                    "); jocul nu il va recunoaste - converteste-l mai intai in acelasi format";
+        c.message = "attachment extension (." + e2 + ") differs from the target file's (." + e1 +
+                    "); the game will not recognise it - convert it to the same format first";
         return c;
     }
-    if (newBytes.empty()) { c.message = "atasamentul este gol"; return c; }
+    if (newBytes.empty()) { c.message = "the attachment is empty"; return c; }
     MediaInfo a = inspectMedia(oldBytes, fileName);
     MediaInfo b = inspectMedia(newBytes, attachName);
     std::string warn;
     if (a.known && !b.known) {
-        warn = "atasamentul nu pare un fisier " + a.format + " valid";
+        warn = "the attachment does not look like a valid " + a.format + " file";
     } else if (a.known && b.known) {
-        if (a.format != b.format) warn += "format diferit (" + a.format + " vs " + b.format + "). ";
+        if (a.format != b.format) warn += "different format (" + a.format + " vs " + b.format + "). ";
         if (a.width && (a.width != b.width || a.height != b.height))
             warn += "dimensiune diferita (" + std::to_string(a.width) + "x" + std::to_string(a.height) + " vs " +
                     std::to_string(b.width) + "x" + std::to_string(b.height) + "). ";

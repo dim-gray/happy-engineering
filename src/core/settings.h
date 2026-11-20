@@ -97,6 +97,7 @@ struct Settings {
             case Provider::OpenAI: return apiKeyOpenAI;
             case Provider::OpenRouter: return apiKeyOpenRouter;
             case Provider::Anthropic: return apiKeyAnthropic;
+            case Provider::Custom: return apiKeyOpenAI;
         }
         return apiKeyAnthropic;
     }

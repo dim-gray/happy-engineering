@@ -112,7 +112,7 @@ inline bool parseValue(ValueType t, const std::string& text, std::vector<uint8_t
     if (!parseUInt64(s, mag)) { err = "numar intreg invalid: " + text; return false; }
     uint64_t limitNeg = 1ULL << (n * 8 - 1);                       // |min|
     uint64_t limitPos = (n == 8) ? UINT64_MAX : ((1ULL << (n * 8)) - 1);
-    if ((neg && mag > limitNeg) || (!neg && mag > limitPos)) { err = "valoarea nu incape in " + std::string(valueTypeName(t)); return false; }
+    if ((neg && mag > limitNeg) || (!neg && mag > limitPos)) { err = "value does not fit in " + std::string(valueTypeName(t)); return false; }
     uint64_t raw = neg ? (~mag + 1) : mag;
     putLe(out, raw, n);
     return true;
@@ -160,7 +160,7 @@ inline bool readValue(IMemory& m, uint64_t addr, ValueType t, std::vector<uint8_
 inline bool writeValue(IMemory& m, uint64_t addr, ValueType t, const std::string& text, std::string& err) {
     std::vector<uint8_t> bytes;
     if (!parseValue(t, text, bytes, err)) return false;
-    if (!m.write(addr, bytes.data(), bytes.size())) { err = "scrierea in memorie a esuat (adresa invalida sau protejata)"; return false; }
+    if (!m.write(addr, bytes.data(), bytes.size())) { err = "writing to memory failed (invalid or protected address)"; return false; }
     return true;
 }
 

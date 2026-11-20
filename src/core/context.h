@@ -68,9 +68,9 @@ inline std::string buildFolderContext(const std::string& root, const std::vector
                                       bool listTruncated, const std::vector<TextSnippet>& snippets,
                                       size_t maxListed = 400) {
     std::ostringstream o;
-    o << "## Folder tinta\n";
-    o << "Cale: " << root << "\n";
-    o << "Fisiere gasite: " << files.size() << (listTruncated ? " (lista a fost limitata, mai exista fisiere)" : "") << "\n\n";
+    o << "## Target folder\n";
+    o << "Path: " << root << "\n";
+    o << "Files found: " << files.size() << (listTruncated ? " (list was capped, more files exist)" : "") << "\n\n";
 
     std::map<std::string, size_t> ext;
     for (size_t i = 0; i < files.size(); ++i) {
@@ -83,21 +83,21 @@ inline std::string buildFolderContext(const std::string& root, const std::vector
     std::sort(byCount.begin(), byCount.end(),
               [](const std::pair<size_t, std::string>& a, const std::pair<size_t, std::string>& b) {
                   return a.first != b.first ? a.first > b.first : a.second < b.second; });
-    o << "Extensii (numar de fisiere): ";
+    o << "Extensions (file counts): ";
     for (size_t i = 0; i < byCount.size() && i < 14; ++i) {
         if (i) o << ", ";
         o << byCount[i].second << " x" << byCount[i].first;
     }
-    o << "\n\n## Lista de fisiere (cale relativa, dimensiune)\n";
+    o << "\n\n## File list (relative path, size)\n";
     for (size_t i = 0; i < files.size() && i < maxListed; ++i)
         o << "- " << files[i].rel << " (" << humanSize(files[i].size) << ")\n";
-    if (files.size() > maxListed) o << "... (" << (files.size() - maxListed) << " fisiere omise din lista)\n";
+    if (files.size() > maxListed) o << "... (" << (files.size() - maxListed) << " files omitted from the list)\n";
 
     if (!snippets.empty()) {
-        o << "\n## Continutul fisierelor text mici (poti folosi textul de aici in replace_text)\n";
+        o << "\n## Contents of small text files (you can use this text in replace_text)\n";
         for (size_t i = 0; i < snippets.size(); ++i) {
             o << "\n### " << snippets[i].rel << "\n```\n" << snippets[i].content;
-            if (snippets[i].truncated) o << "\n...[trunchiat]";
+            if (snippets[i].truncated) o << "\n...[truncated]";
             o << "\n```\n";
         }
     }
@@ -113,10 +113,10 @@ struct AttachmentContextItem {
 inline std::string buildAttachmentsContext(const std::vector<AttachmentContextItem>& items) {
     if (items.empty()) return std::string();
     std::ostringstream o;
-    o << "## Atasamente (fisiere puse la dispozitie de utilizator; le poti referi dupa nume in plan)\n";
+    o << "## Attachments (files provided by the user; reference them by name in the plan)\n";
     for (size_t i = 0; i < items.size(); ++i) {
         o << items[i].description;
-        if (items[i].sentAsImage) o << "  [imaginea iti este atasata in acest mesaj]";
+        if (items[i].sentAsImage) o << "  [the image itself is attached to this message]";
         o << "\n";
         if (!items[i].textContent.empty()) o << "```\n" << items[i].textContent << "\n```\n";
     }
@@ -126,12 +126,12 @@ inline std::string buildAttachmentsContext(const std::vector<AttachmentContextIt
 inline std::string buildWatchContext(const std::vector<WatchEntry>& watch) {
     if (watch.empty()) return std::string();
     std::ostringstream o;
-    o << "## Lista de memorie (adrese alese de utilizator; in plan poti folosi DOAR aceste etichete)\n";
+    o << "## Memory watch list (addresses chosen by the user; in a plan you may ONLY use these labels)\n";
     for (size_t i = 0; i < watch.size(); ++i) {
         char addr[32];
         std::snprintf(addr, sizeof(addr), "0x%llX", static_cast<unsigned long long>(watch[i].address));
-        o << "- " << watch[i].label << ": " << valueTypeName(watch[i].type) << " la " << addr;
-        if (!watch[i].lastText.empty()) o << ", valoare curenta " << watch[i].lastText;
+        o << "- " << watch[i].label << ": " << valueTypeName(watch[i].type) << " at " << addr;
+        if (!watch[i].lastText.empty()) o << ", current value " << watch[i].lastText;
         o << "\n";
     }
     return o.str();
@@ -145,7 +145,7 @@ inline std::string buildExtraFileSection(const std::string& rel, const std::vect
     if (looksLikeText(bytes.data(), bytes.size())) {
         std::string text = decodeTextBytes(bytes.data(), bytes.size());
         std::string cut = cutUtf8(text, 40000);
-        o << "```\n" << cut << (cut.size() < text.size() ? "\n...[trunchiat]" : "") << "\n```\n";
+        o << "```\n" << cut << (cut.size() < text.size() ? "\n...[truncated]" : "") << "\n```\n";
     } else {
         o << buildFileContext(rel, bytes) << "\n";
     }
@@ -154,7 +154,7 @@ inline std::string buildExtraFileSection(const std::string& rel, const std::vect
 
 inline std::string buildExtraFilesContext(const std::vector<std::string>& sections) {
     if (sections.empty()) return std::string();
-    std::string s = "## Fisiere cerute suplimentar de AI\n";
+    std::string s = "## Extra files requested by the AI\n";
     for (size_t i = 0; i < sections.size(); ++i) s += "\n" + sections[i];
     return truncateWithNote(s, 90000);
 }

@@ -21,41 +21,29 @@ namespace heng {
 // la implicit" in the UI restores this exact text.
 inline const char* defaultSystemPrompt() {
     return
-        "Esti \"Happy Enginiring\", un asistent de inginerie inversa si modding "
-        "pentru programe si jocuri. Primesti informatii deja extrase despre o "
-        "tinta aleasa de utilizator: headere PE, importuri, exporturi, siruri de "
-        "caractere, continut HTML, lista de fisiere dintr-un folder, module "
-        "incarcate, atasamente (imagini, audio, text) si valori din memorie "
-        "alese de utilizator. Explica ce face tinta si ce se poate modifica, pe "
-        "baza STRICT a datelor primite; cand ceva nu reiese din date, spune clar "
-        "ca e o presupunere. Cand utilizatorul cere o modificare, propui un plan "
-        "de actiuni concrete (vezi protocolul planului), pe care utilizatorul il "
-        "verifica si il aproba inainte sa se intample ceva. Ajuti doar la "
-        "modificari legitime: jocuri single-player sau offline, programe proprii, "
-        "traduceri, retexturare, modding. Nu generezi chei de licenta, ocolire de "
-        "DRM sau anti-cheat, malware sau exploit-uri si nu ajuti la trisat in "
-        "jocuri online sau multiplayer. Raspunzi concis, structurat, in limba in "
-        "care scrie utilizatorul.";
+        "You are Happy Engineering, a friendly but precise reverse-engineering and game-modding assistant. "
+        "You help the user modify programs and games they are entitled to modify: single-player and offline "
+        "games, their own software, translations, re-texturing, balance tweaks, UI text. Base your answers "
+        "strictly on the data you are given and say plainly when something is an assumption. Propose concrete "
+        "changes as a plan the user reviews before anything happens. You do not help with license-key "
+        "generation, DRM or anti-cheat bypass, malware, or cheating in online or multiplayer games. "
+        "Answer in the language the user writes in.";
 }
 
-// The fixed plan protocol. It is ALWAYS appended after the (user-editable)
-// personality, so editing the personality can never break plan parsing.
+// Legacy single-shot plan protocol (the agent protocol in agent.h supersedes it).
 inline const char* planProtocolPrompt() {
-    return R"HEPLAN(PROTOCOLUL PLANULUI (fix):
-Daca utilizatorul cere modificari, explica pe scurt in text, apoi adauga LA FINAL exact un bloc de cod cu eticheta happy-plan, continand JSON valid:
+    return R"HEPLAN(PLAN PROTOCOL (fixed):
+If the user asks for changes, explain briefly, then END the reply with exactly one code block tagged happy-plan containing valid JSON:
 ```happy-plan
-{"summary":"ce face planul, pe scurt","actions":[ ... ],"need_files":["cale/relativa"]}
+{"summary":"short description","actions":[ ... ],"need_files":["relative/path"]}
 ```
-Tipuri de actiuni ("note" = motivul, optional):
-1. {"type":"replace_text","file":"cale/relativa","find":"text exact existent","replace":"text nou","encoding":"utf8","all":true}
-   encoding: utf8 | utf16le | ascii. In fisiere binare lungimea nu poate creste (un text mai scurt se completeaza cu 0x00).
-2. {"type":"replace_file","file":"cale/relativa","with_attachment":"nume_atasament.ext"}
-   Atasamentul trebuie sa aiba aceeasi extensie; la imagini/audio pastreaza aceeasi dimensiune/format.
-3. {"type":"patch_bytes","file":"cale/relativa","offset":"0x1A2B","expect":"74 05","write":"EB 05"}
-   "expect" = octetii actuali de la offset (include-i mereu daca ii cunosti).
-4. {"type":"mem_write","label":"eticheta","value":"99999"}
-   DOAR etichete din lista de memorie primita; nu inventa adrese.
-Reguli: folosesti doar fisiere din lista primita, cu cai relative separate prin "/", fara "..". Textul din "find" trebuie sa existe exact in continutul sau sirurile primite; daca nu esti sigur, cere fisierul prin "need_files" in loc sa ghicesti. Nu inventa offset-uri, adrese sau continut. Daca lipsesc date, spune ce lipseste si nu trimite plan. Maxim 40 de actiuni, un singur bloc happy-plan.)HEPLAN";
+Action types ("note" = reason, optional):
+1. {"type":"replace_text","file":"relative/path","find":"exact existing text","replace":"new text","encoding":"utf8","all":true}
+2. {"type":"replace_file","file":"relative/path","with_attachment":"name.ext"}
+3. {"type":"replace_image","file":"relative/path.png","with_attachment":"name.jpg","fit":"cover"}
+4. {"type":"patch_bytes","file":"relative/path","offset":"0x1A2B","expect":"74 05","write":"EB 05"}
+5. {"type":"mem_write","label":"label","value":"99999"}  (only labels from the memory list)
+Rules: only files from the list you were given; never invent offsets, addresses or content; ask for files via "need_files" instead of guessing. Max 40 actions.)HEPLAN";
 }
 
 // Trims the user-edited system prompt; falls back to the default if it was
@@ -76,15 +64,15 @@ inline std::string fullSystemPrompt(const std::string& customPersonality) {
 
 inline std::string truncateWithNote(const std::string& s, size_t maxLen) {
     if (s.size() <= maxLen) return s;
-    return s.substr(0, maxLen) + "\n...[trunchiat, " + std::to_string(s.size() - maxLen) + " caractere omise]";
+    return s.substr(0, maxLen) + "\n...[truncated, " + std::to_string(s.size() - maxLen) + " characters omitted]";
 }
 
 // ---- File (exe/dll/any binary) -----------------------------------------
 inline std::string buildFileContext(const std::string& path, const std::vector<uint8_t>& bytes) {
     std::ostringstream o;
-    o << "## Fisier tinta\n";
-    o << "Cale: " << path << "\n";
-    o << "Dimensiune: " << bytes.size() << " octeti\n\n";
+    o << "## Target file\n";
+    o << "Path: " << path << "\n";
+    o << "Size: " << bytes.size() << " bytes\n\n";
 
     PeInfo pe = parsePe(bytes.data(), bytes.size());
     if (pe.valid) {
@@ -104,10 +92,10 @@ inline std::string buildFileContext(const std::string& path, const std::vector<u
         }
         o << "\n";
 
-        o << "## Importuri (DLL -> cateva functii)\n";
+        o << "## Imports (DLL -> some functions)\n";
         size_t shown = 0;
         for (auto& imp : pe.imports) {
-            if (shown++ >= 40) { o << "... (restul importurilor omise)\n"; break; }
+            if (shown++ >= 40) { o << "... (remaining imports omitted)\n"; break; }
             o << "- " << imp.dll << ": ";
             for (size_t i = 0; i < imp.functions.size() && i < 12; ++i) {
                 if (i) o << ", ";
@@ -119,17 +107,17 @@ inline std::string buildFileContext(const std::string& path, const std::vector<u
         o << "\n";
 
         if (!pe.exports.empty()) {
-            o << "## Exporturi\n";
+            o << "## Exports\n";
             for (size_t i = 0; i < pe.exports.size() && i < 60; ++i) o << "- " << pe.exports[i] << "\n";
             if (pe.exports.size() > 60) o << "... (restul exporturilor omise)\n";
             o << "\n";
         }
     } else {
-        o << "## Header PE\n(nu este un fisier PE recunoscut: " << pe.error << ")\n\n";
+        o << "## Header PE\n(not a recognised PE file: " << pe.error << ")\n\n";
     }
 
     auto strs = extractInterestingStrings(bytes.data(), bytes.size(), 5, 250);
-    o << "## Siruri de caractere relevante (esantion, max 250)\n";
+    o << "## Relevant strings (sample, max 250)\n";
     for (auto& s : strs) o << "- " << s << "\n";
 
     return truncateWithNote(o.str(), 16000);
@@ -138,9 +126,9 @@ inline std::string buildFileContext(const std::string& path, const std::vector<u
 // ---- HTML -----------------------------------------------------------------
 inline std::string buildHtmlContext(const std::string& path, const std::string& htmlText) {
     std::ostringstream o;
-    o << "## Fisier HTML tinta\n";
-    o << "Cale: " << path << "\n";
-    o << "Dimensiune: " << htmlText.size() << " caractere\n\n";
+    o << "## Target HTML file\n";
+    o << "Path: " << path << "\n";
+    o << "Size: " << htmlText.size() << " characters\n\n";
 
     // naive, dependency-free scan for a few interesting tag attributes
     auto collect = [&](const char* attr) {
@@ -186,15 +174,15 @@ inline std::string buildProcessContext(uint32_t pid, const std::string& processN
                                         const std::vector<ModuleSummary>& modules,
                                         const std::string& mainModulePeContext /* from buildFileContext, or empty */) {
     std::ostringstream o;
-    o << "## Proces tinta\n";
+    o << "## Target process\n";
     o << "PID: " << pid << "\n";
-    o << "Nume: " << processName << "\n";
-    o << "Executabil principal: " << mainModulePath << "\n\n";
+    o << "Name: " << processName << "\n";
+    o << "Main executable: " << mainModulePath << "\n\n";
 
-    o << "## Module incarcate (" << modules.size() << ")\n";
+    o << "## Loaded modules (" << modules.size() << ")\n";
     size_t shown = 0;
     for (auto& m : modules) {
-        if (shown++ >= 80) { o << "... (restul modulelor omise)\n"; break; }
+        if (shown++ >= 80) { o << "... (remaining modules omitted)\n"; break; }
         o << "- " << m.name << "  (" << m.path << ")\n";
     }
     o << "\n";
@@ -212,7 +200,7 @@ inline std::string buildProcessContext(uint32_t pid, const std::string& processN
 inline std::string buildUserPrompt(const std::string& instructions, const std::string& context) {
     std::ostringstream o;
     o << "# Instructiuni de la utilizator\n" << (instructions.empty() ? "(niciuna -- fa o analiza generala)" : instructions) << "\n\n";
-    o << "# Context extras despre tinta\n" << context;
+    o << "# Extracted context about the target\n" << context;
     return o.str();
 }
 

@@ -22,7 +22,7 @@
 
 namespace heng {
 
-enum class ActionType { ReplaceText, ReplaceFile, PatchBytes, MemWrite, Unknown };
+enum class ActionType { ReplaceText, ReplaceFile, ReplaceImage, PatchBytes, MemWrite, Unknown };
 
 struct PlanAction {
     ActionType type = ActionType::Unknown;
@@ -31,7 +31,8 @@ struct PlanAction {
     std::string find, replace; // replace_text
     std::string encoding = "utf8"; // utf8 | utf16le | ascii
     bool all = true;           // replace every occurrence (false = first only)
-    std::string attachment;    // replace_file: attachment file name
+    std::string attachment;    // replace_file / replace_image: attachment file name
+    std::string fit = "cover";  // replace_image: cover | contain | stretch
     uint64_t offset = 0;       // patch_bytes
     std::vector<uint8_t> expect, write; // patch_bytes
     std::string label;         // mem_write: watch-list label
@@ -192,7 +193,7 @@ inline PlanAction parseAction(const JsonValue& o) {
 
     auto needFile = [&]() -> bool {
         if (!normalizeRelPath(o.getString("file"), a.file)) {
-            a.error = "cale de fisier lipsa sau nepermisa (doar cai relative in folderul tinta)";
+            a.error = "missing or disallowed file path (only relative paths inside the target folder)";
             return false;
         }
         return true;
@@ -202,11 +203,11 @@ inline PlanAction parseAction(const JsonValue& o) {
         a.type = ActionType::ReplaceText;
         if (!needFile()) return a;
         a.find = o.getString("find");
-        if (a.find.empty()) { a.error = "lipseste textul de cautat ('find')"; return a; }
-        if (!o.find("replace")) { a.error = "lipseste 'replace'"; return a; }
+        if (a.find.empty()) { a.error = "missing search text ('find')"; return a; }
+        if (!o.find("replace")) { a.error = "missing 'replace'"; return a; }
         a.replace = o.getString("replace");
         std::string enc = lowerCopy(o.getString("encoding", "utf8"));
-        if (enc != "utf8" && enc != "utf16le" && enc != "ascii") { a.error = "encoding necunoscut: " + enc; return a; }
+        if (enc != "utf8" && enc != "utf16le" && enc != "ascii") { a.error = "unknown encoding: " + enc; return a; }
         a.encoding = enc;
         const JsonValue* all = o.find("all");
         if (all && all->type == JsonType::Bool) a.all = all->b;
@@ -215,33 +216,45 @@ inline PlanAction parseAction(const JsonValue& o) {
         if (!needFile()) return a;
         a.attachment = o.getString("with_attachment");
         if (a.attachment.empty()) a.attachment = o.getString("attachment");
-        if (a.attachment.empty()) { a.error = "lipseste 'with_attachment'"; return a; }
+        if (a.attachment.empty()) { a.error = "missing 'with_attachment'"; return a; }
         if (a.attachment.find('/') != std::string::npos || a.attachment.find('\\') != std::string::npos) {
-            a.error = "numele atasamentului nu are voie sa contina cai";
+            a.error = "attachment name must not contain a path";
             return a;
         }
+    } else if (t == "replace_image") {
+        a.type = ActionType::ReplaceImage;
+        if (!needFile()) return a;
+        a.attachment = o.getString("with_attachment");
+        if (a.attachment.empty()) a.attachment = o.getString("attachment");
+        if (a.attachment.empty()) { a.error = "missing 'with_attachment'"; return a; }
+        if (a.attachment.find('/') != std::string::npos || a.attachment.find('\\') != std::string::npos) {
+            a.error = "attachment name must not contain a path";
+            return a;
+        }
+        a.fit = lowerCopy(o.getString("fit", "cover"));
+        if (a.fit != "cover" && a.fit != "contain" && a.fit != "stretch") { a.error = "unknown fit: " + a.fit; return a; }
     } else if (t == "patch_bytes") {
         a.type = ActionType::PatchBytes;
         if (!needFile()) return a;
         std::string off;
         if (!jsonScalarToString(o.find("offset"), off) || !parseUInt64(off, a.offset)) {
-            a.error = "offset lipsa sau invalid";
+            a.error = "missing or invalid offset";
             return a;
         }
-        if (!parseHexBytes(o.getString("write"), a.write)) { a.error = "'write' lipseste sau nu e hex valid"; return a; }
+        if (!parseHexBytes(o.getString("write"), a.write)) { a.error = "'write' is missing or not valid hex"; return a; }
         std::string exp = o.getString("expect");
         if (!exp.empty()) {
-            if (!parseHexBytes(exp, a.expect)) { a.error = "'expect' nu e hex valid"; return a; }
-            if (a.expect.size() != a.write.size()) { a.error = "'expect' si 'write' trebuie sa aiba aceeasi lungime"; return a; }
+            if (!parseHexBytes(exp, a.expect)) { a.error = "'expect' is not valid hex"; return a; }
+            if (a.expect.size() != a.write.size()) { a.error = "'expect' and 'write' must have the same length"; return a; }
         }
     } else if (t == "mem_write") {
         a.type = ActionType::MemWrite;
         a.label = o.getString("label");
-        if (a.label.empty()) { a.error = "lipseste 'label' (eticheta din lista de memorie)"; return a; }
-        if (!jsonScalarToString(o.find("value"), a.value) || a.value.empty()) { a.error = "lipseste 'value'"; return a; }
+        if (a.label.empty()) { a.error = "missing 'label' (a label from the memory watch list)"; return a; }
+        if (!jsonScalarToString(o.find("value"), a.value) || a.value.empty()) { a.error = "missing 'value'"; return a; }
     } else {
         a.type = ActionType::Unknown;
-        a.error = "tip de actiune necunoscut: " + a.typeName;
+        a.error = "unknown action type: " + a.typeName;
     }
     return a;
 }
@@ -253,17 +266,17 @@ inline Plan extractPlan(const std::string& text) {
     if (m == std::string::npos) return p;
     p.found = true;
     size_t lineEnd = text.find('\n', m);
-    if (lineEnd == std::string::npos) { p.error = "blocul happy-plan este gol"; return p; }
+    if (lineEnd == std::string::npos) { p.error = "the happy-plan block is empty"; return p; }
     size_t close = text.find("```", lineEnd);
     if (close == std::string::npos) {
-        p.error = "blocul happy-plan nu este inchis (raspunsul a fost probabil taiat de limita de tokeni)";
+        p.error = "the happy-plan block is not closed (the reply was probably cut off by the token limit)";
         return p;
     }
     std::string body = text.substr(lineEnd + 1, close - lineEnd - 1);
     bool ok = false;
     std::string err;
     JsonValue root = parseJson(body, &ok, &err);
-    if (!ok || !root.isObject()) { p.error = "JSON invalid in planul AI: " + err; return p; }
+    if (!ok || !root.isObject()) { p.error = "invalid JSON in the AI plan: " + err; return p; }
 
     p.summary = root.getString("summary");
     const JsonValue* need = root.find("need_files");
@@ -281,7 +294,7 @@ inline Plan extractPlan(const std::string& text) {
             if (item.isObject()) p.actions.push_back(parseAction(item));
         }
     } else if (p.needFiles.empty()) {
-        p.error = "planul nu contine nicio lista 'actions'";
+        p.error = "the plan has no 'actions' list";
     }
     return p;
 }
@@ -309,9 +322,10 @@ inline std::string shortText(const std::string& s, size_t maxBytes = 40) {
 inline const char* actionTypeLabel(ActionType t) {
     switch (t) {
         case ActionType::ReplaceText: return "Text";
-        case ActionType::ReplaceFile: return "Fisier";
-        case ActionType::PatchBytes:  return "Octeti";
-        case ActionType::MemWrite:    return "Memorie";
+        case ActionType::ReplaceFile: return "File";
+        case ActionType::ReplaceImage: return "Image";
+        case ActionType::PatchBytes:  return "Bytes";
+        case ActionType::MemWrite:    return "Memory";
         default:                      return "?";
     }
 }
@@ -319,20 +333,22 @@ inline const char* actionTypeLabel(ActionType t) {
 inline std::string describeAction(const PlanAction& a) {
     switch (a.type) {
         case ActionType::ReplaceText:
-            return "Inlocuieste in " + a.file + ": \"" + shortText(a.find) + "\" -> \"" + shortText(a.replace) + "\"" +
-                   (a.all ? "" : " (doar prima aparitie)");
+            return "Replace in " + a.file + ": \"" + shortText(a.find) + "\" -> \"" + shortText(a.replace) + "\"" +
+                   (a.all ? "" : " (first match only)");
         case ActionType::ReplaceFile:
-            return "Inlocuieste " + a.file + " cu atasamentul " + a.attachment;
+            return "Replace " + a.file + " with attachment " + a.attachment;
+        case ActionType::ReplaceImage:
+            return "Re-texture " + a.file + " with " + a.attachment + " (auto-resized, fit " + a.fit + ")";
         case ActionType::PatchBytes: {
             char off[32];
             std::snprintf(off, sizeof(off), "0x%llX", static_cast<unsigned long long>(a.offset));
-            return "Patch in " + a.file + " la " + off + ": " + (a.expect.empty() ? std::string("?") : toHexBytes(a.expect)) +
+            return "Patch " + a.file + " at " + off + ": " + (a.expect.empty() ? std::string("?") : toHexBytes(a.expect)) +
                    " -> " + toHexBytes(a.write);
         }
         case ActionType::MemWrite:
-            return "Scrie in memorie: " + a.label + " = " + a.value;
+            return "Write to memory: " + a.label + " = " + a.value;
         default:
-            return "Actiune necunoscuta: " + a.typeName;
+            return "Unknown action: " + a.typeName;
     }
 }
 
