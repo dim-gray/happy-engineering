@@ -32,9 +32,13 @@ jobs:
           } 2>&1 | tee build.log
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: log-linux-x64, path: build.log }
+        with:
+          name: log-linux-x64
+          path: build.log
       - uses: actions/upload-artifact@v4
-        with: { name: HappyEngineering-linux-x64, path: HappyEngineering-linux-x64.tar.gz }
+        with:
+          name: HappyEngineering-linux-x64
+          path: HappyEngineering-linux-x64.tar.gz
 
   linux-x86:
     runs-on: ubuntu-22.04
@@ -58,9 +62,13 @@ jobs:
           ' 2>&1 | tee build.log
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: log-linux-x86, path: build.log }
+        with:
+          name: log-linux-x86
+          path: build.log
       - uses: actions/upload-artifact@v4
-        with: { name: HappyEngineering-linux-x86, path: HappyEngineering-linux-x86.tar.gz }
+        with:
+          name: HappyEngineering-linux-x86
+          path: HappyEngineering-linux-x86.tar.gz
 
   windows:
     runs-on: ubuntu-22.04
@@ -86,9 +94,13 @@ jobs:
           } 2>&1 | tee build.log
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: log-windows-${{ matrix.arch }}, path: build.log }
+        with:
+          name: log-windows-${{ matrix.arch }}
+          path: build.log
       - uses: actions/upload-artifact@v4
-        with: { name: HappyEngineering-windows-${{ matrix.arch }}, path: HappyEngineering-windows-${{ matrix.arch }}.zip }
+        with:
+          name: HappyEngineering-windows-${{ matrix.arch }}
+          path: HappyEngineering-windows-${{ matrix.arch }}.zip
 
   report:
     if: always() && github.event_name != 'pull_request'
@@ -96,7 +108,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/download-artifact@v4
-        with: { pattern: log-*, path: logs }
+        with:
+          pattern: log-*
+          path: logs
       - name: Publish logs to ci-logs branch
         shell: bash
         run: |
@@ -112,6 +126,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/download-artifact@v4
-        with: { pattern: HappyEngineering-*, path: pkg, merge-multiple: true }
+        with:
+          pattern: HappyEngineering-*
+          path: pkg
+          merge-multiple: true
       - uses: softprops/action-gh-release@v2
-        with: { files: pkg/* }
+        with:
+          files: pkg/*
