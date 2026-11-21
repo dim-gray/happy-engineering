@@ -21,7 +21,7 @@ jobs:
           set -o pipefail
           {
             sudo apt-get update
-            sudo apt-get install -y cmake g++ libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+            sudo apt-get install -y cmake g++ libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libcurl4-openssl-dev
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
             cmake --build build -j4
             ctest --test-dir build --output-on-failure
@@ -51,7 +51,7 @@ jobs:
           docker run --rm -v "$PWD":/w -w /w i386/debian:bookworm linux32 bash -c '
             set -ex
             apt-get update
-            apt-get install -y cmake g++ git ca-certificates make libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+            apt-get install -y cmake g++ git ca-certificates make libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libcurl4-openssl-dev
             file=$(uname -m); echo arch=$file
             cmake -S . -B build32 -DCMAKE_BUILD_TYPE=Release
             cmake --build build32 -j4

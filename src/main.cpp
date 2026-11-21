@@ -4,8 +4,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "stb_image.h"  // declarations only; implementation is in app/imgconv.cpp
 
 extern const unsigned char icon_png[]; extern const std::size_t icon_png_size;
 extern const unsigned char font_regular[]; extern const std::size_t font_regular_size;
