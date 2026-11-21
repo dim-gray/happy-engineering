@@ -47,7 +47,7 @@ inline std::vector<std::string> suggestedModels(Provider p, Tier t) {
                 : std::vector<std::string>{"gpt-5-mini", "gpt-5-nano", "gpt-4.1-mini"};
         case Provider::Anthropic:
             return t == Tier::Pro
-                ? std::vector<std::string>{"claude-opus-5-5", "claude-sonnet-5-5"}
+                ? std::vector<std::string>{"claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"}
                 : std::vector<std::string>{"claude-haiku-5-5"};
         case Provider::OpenRouter:
             return t == Tier::Pro

@@ -86,7 +86,7 @@ he_embed(assets/fonts/Poppins-Medium.ttf font_medium)
 he_embed(assets/fonts/Poppins-Bold.ttf font_bold)
 he_embed(assets/fonts/DejaVuSansMono.ttf font_mono)
 
-set(HE_SOURCES src/main.cpp)
+set(HE_SOURCES src/main.cpp src/ui/theme.cpp src/ui/app.cpp src/ui/filebrowser.cpp src/ui/page_workspace.cpp src/ui/page_plan.cpp src/ui/page_memory.cpp)
 if(WIN32)
   list(APPEND HE_SOURCES src/platform/platform_win.cpp)
 else()

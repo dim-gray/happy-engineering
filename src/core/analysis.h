@@ -199,7 +199,7 @@ inline std::string buildProcessContext(uint32_t pid, const std::string& processN
 // the final prompt sent as the "user" message/content.
 inline std::string buildUserPrompt(const std::string& instructions, const std::string& context) {
     std::ostringstream o;
-    o << "# Instructiuni de la utilizator\n" << (instructions.empty() ? "(niciuna -- fa o analiza generala)" : instructions) << "\n\n";
+    o << "# User instructions\n" << (instructions.empty() ? "(none -- do a general analysis)" : instructions) << "\n\n";
     o << "# Extracted context about the target\n" << context;
     return o.str();
 }

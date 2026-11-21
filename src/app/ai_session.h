@@ -47,10 +47,10 @@ public:
     std::string lastError() const;
     // token usage is not parsed; we report rough counts
     size_t requestCount() const { return requests_.load(); }
+    void addLog(LogKind k, const std::string& title, const std::string& text);   // also used by tests/screenshots
 
 private:
     void run(SessionSettings s, Workspace* ws);
-    void addLog(LogKind k, const std::string& title, const std::string& text);
 
     mutable std::mutex mu_;
     std::vector<LogItem> log_;
