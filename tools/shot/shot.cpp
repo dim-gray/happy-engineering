@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
     std::vector<uint8_t> fb;
     for (int f = 0; f < 90; ++f) {
         io.DisplaySize = ImVec2((float)W, (float)H); io.DeltaTime = 1.f / 30.f;
+        if (getenv("MX")) { float mx=atof(getenv("MX")), my=atof(getenv("MY"));
+            if (f==50) io.AddMousePosEvent(mx,my); if (f==55) io.AddMouseButtonEvent(0,true); if (f==58) io.AddMouseButtonEvent(0,false); }
         ImGui::NewFrame(); app.frame(io.DisplaySize); ImGui::Render();
         if (f < 89) continue;
         fb.assign((size_t)W * H * 4, 0);
