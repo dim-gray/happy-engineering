@@ -253,7 +253,9 @@ void App::drawSettingsWindow(ImVec2 display) {
     ImGui::PushStyleColor(ImGuiCol_Border, ImGui::ColorConvertU32ToFloat4(ui::col::pink));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
     ImGuiWindowFlags fl = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove;
-    ImGui::SetNextWindowFocus();
+    // Focus once on open only: re-focusing every frame clears the active widget mid-click.
+    static bool focused = false;
+    if (settingsOpen_ && !focused) { ImGui::SetNextWindowFocus(); focused = true; } else if (!settingsOpen_) focused = false;
     if (ImGui::Begin("Settings##win", nullptr, fl)) {
         ImDrawList* dl = ImGui::GetWindowDrawList(); ImVec2 wp = ImGui::GetWindowPos(), wsz = ImGui::GetWindowSize();
         for (int g = 3; g >= 1; --g) dl->AddRect(ImVec2(wp.x - g * 2, wp.y - g * 2), ImVec2(wp.x + wsz.x + g * 2, wp.y + wsz.y + g * 2), ui::col::withAlpha(ui::col::pink, 0.06f * (4 - g) * open), 14 * s + g * 2, 0, 2.f);

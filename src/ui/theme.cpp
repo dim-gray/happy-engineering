@@ -323,7 +323,7 @@ bool segmented(const char* id_, const char* const* items, int n, int* sel, float
     // rounded look: overdraw corners lightly by outline
     for (int i = 0; i < n; ++i) {
         ImRect cell(ImVec2(bb.Min.x + i * cw, bb.Min.y), ImVec2(bb.Min.x + (i + 1) * cw, bb.Max.y));
-        ImGuiID cid = id + 100 + i; bool hov, held;
+        ImGuiID cid = id + 100 + i; bool hov, held; ImGui::KeepAliveID(cid);
         if (ImGui::ButtonBehavior(cell, cid, &hov, &held)) { if (*sel != i) { *sel = i; changed = true; } }
         float on = std::max(0.f, 1.f - std::fabs(pos - i));
         ImVec2 ts = ImGui::CalcTextSize(items[i]);

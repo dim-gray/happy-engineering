@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "ui/app.h"
 #include "ui/theme.h"
 #include "app/fsutil.h"
@@ -63,7 +64,7 @@ int main(int argc, char** argv) {
         io.DisplaySize = ImVec2((float)W, (float)H); io.DeltaTime = 1.f / 30.f;
         if (getenv("MX")) { float mx=atof(getenv("MX")), my=atof(getenv("MY"));
             if (f==50) io.AddMousePosEvent(mx,my); if (f==55) io.AddMouseButtonEvent(0,true); if (f==58) io.AddMouseButtonEvent(0,false); }
-        ImGui::NewFrame(); app.frame(io.DisplaySize); ImGui::Render();
+        ImGui::NewFrame(); app.frame(io.DisplaySize); if (getenv("MX") && f>=54 && f<=60) { ImGuiContext& g=*ImGui::GetCurrentContext(); std::printf("f%d hov=%u act=%u hovwin=%s navwin=%s down=%d\n", f, g.HoveredId, g.ActiveId, g.HoveredWindow?g.HoveredWindow->Name:"-", g.NavWindow?g.NavWindow->Name:"-", (int)io.MouseDown[0]); } ImGui::Render();
         if (f < 89) continue;
         fb.assign((size_t)W * H * 4, 0);
         ImDrawData* dd = ImGui::GetDrawData();
