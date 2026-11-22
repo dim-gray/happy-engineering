@@ -36,7 +36,7 @@ float animKey(const char* key, float target, float speed = 14.f);
 void drawBackground(ImVec2 size, float intensity = 1.f);
 
 // ---- widgets --------------------------------------------------------------------
-enum class Icon { Workspace, Plan, Memory, Activity, Settings, About, Folder, File, Globe, Chip, Send, Stop, Plus, Trash, Copy, Check, Bolt, Image, Key, Play, Refresh, Eye };
+enum class Icon { Workspace, Plan, Memory, Activity, Settings, About, Folder, File, Globe, Chip, Send, Stop, Plus, Trash, Copy, Check, Bolt, Image, Key, Play, Refresh, Eye, Tools };
 void drawIcon(ImDrawList* dl, Icon ic, ImVec2 center, float size, ImU32 color);
 
 bool button(const char* label, ImVec2 size = ImVec2(0, 0), ImU32 accent = 0, bool filled = false, Icon icon = (Icon)-1);

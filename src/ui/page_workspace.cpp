@@ -240,24 +240,47 @@ void App::drawAttachmentsPanel(float h) {
 }
 
 // ----------------------------------------------------------------- feed
-static void renderRich(const std::string& text, float wrapW) {
-    // split on ``` fences: code in mono on a darker plate
-    size_t pos = 0; bool code = false;
+static void renderRich(const std::string& text, float wrapW, std::string* useCode, std::string* useLang) {
+    // split on ``` fences: code in mono on a darker plate with Copy / "To Tools" buttons
+    float s = ImGui::GetFontSize() / 17.f;
+    size_t pos = 0; bool code = false; int blockNo = 0;
     while (pos <= text.size()) {
         size_t f = text.find("```", pos);
         std::string seg = text.substr(pos, f == std::string::npos ? std::string::npos : f - pos);
         if (!seg.empty()) {
             if (code) {
                 size_t nl = seg.find('\n'); std::string body = (nl == std::string::npos) ? seg : seg.substr(nl + 1);
+                std::string lang = (nl == std::string::npos) ? std::string() : seg.substr(0, nl);
+                while (!lang.empty() && std::isspace((unsigned char)lang.back())) lang.pop_back();
                 while (!body.empty() && (body.back() == '\n' || body.back() == ' ')) body.pop_back();
+                ImGui::PushID(blockNo++);
+                float headH = 26 * s;
                 ImVec2 p = ImGui::GetCursorScreenPos(); ImGui::PushFont(ui::fonts.mono);
                 ImVec2 ts = ImGui::CalcTextSize(body.c_str(), nullptr, false, wrapW - 20);
-                ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + wrapW, p.y + ts.y + 14), IM_COL32(6, 1, 20, 230), 8.f);
-                ImGui::GetWindowDrawList()->AddRect(p, ImVec2(p.x + wrapW, p.y + ts.y + 14), ui::col::withAlpha(ui::col::purple, 0.5f), 8.f);
-                ImGui::SetCursorScreenPos(ImVec2(p.x + 10, p.y + 7));
+                ImGui::PopFont();
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                dl->AddRectFilled(p, ImVec2(p.x + wrapW, p.y + headH + ts.y + 14), IM_COL32(6, 1, 20, 230), 8.f);
+                dl->AddRect(p, ImVec2(p.x + wrapW, p.y + headH + ts.y + 14), ui::col::withAlpha(ui::col::purple, 0.5f), 8.f);
+                dl->AddLine(ImVec2(p.x + 6, p.y + headH), ImVec2(p.x + wrapW - 6, p.y + headH), ui::col::withAlpha(ui::col::purple, 0.35f));
+                ImGui::PushFont(ui::fonts.small);
+                dl->AddText(ImVec2(p.x + 10, p.y + 5 * s), ui::col::muted, lang.empty() ? "code" : lang.c_str());
+                ImGui::PopFont();
+                // buttons (right aligned)
+                std::string lw = lang; for (char& c : lw) c = (char)std::tolower((unsigned char)c);
+                bool buildable = lw == "c" || lw == "cpp" || lw == "c++" || lw == "cc" || lw == "asm" || lw == "nasm";
+                float bw = 62 * s, bh = 20 * s, x = p.x + wrapW - bw - 6;
+                ImGui::SetCursorScreenPos(ImVec2(x, p.y + 3 * s));
+                if (ui::button("Copy", ImVec2(bw, bh), ui::col::cyan)) { ImGui::SetClipboardText(body.c_str()); ui::toast(Toast::Success, "Code copied"); }
+                if (buildable && useCode) {
+                    ImGui::SetCursorScreenPos(ImVec2(x - 110 * s - 6, p.y + 3 * s));
+                    if (ui::button("To Tools", ImVec2(110 * s, bh), ui::col::orange)) { *useCode = body; *useLang = lang; }
+                }
+                ImGui::SetCursorScreenPos(ImVec2(p.x + 10, p.y + headH + 7));
+                ImGui::PushFont(ui::fonts.mono);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(ui::col::cyan));
                 ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapW - 20); ImGui::TextUnformatted(body.c_str()); ImGui::PopTextWrapPos(); ImGui::PopStyleColor(); ImGui::PopFont();
-                ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + ts.y + 20));
+                ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + headH + ts.y + 20));
+                ImGui::PopID();
             } else {
                 ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapW); ImGui::TextUnformatted(seg.c_str()); ImGui::PopTextWrapPos();
             }
@@ -285,6 +308,7 @@ void App::drawFeed(float h) {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (w - ImGui::CalcTextSize(l2).x) * .5f); ImGui::TextDisabled("%s", l2);
     }
     float wrapW = ImGui::GetContentRegionAvail().x - 24 * s;
+    std::string useCode, useLang;
     for (size_t i = 0; i < log.size(); ++i) {
         const LogItem& it = log[i];
         ImGui::PushID((int)i);
@@ -306,14 +330,19 @@ void App::drawFeed(float h) {
             if (isCall) { std::string a = it.text; if (a.size() > 90) a = a.substr(0, 90) + "..."; head += "  " + a; }
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(isCall ? ui::col::purple : ui::col::muted));
             if (isCall) ImGui::TextUnformatted(head.c_str());
-            else { if (ImGui::TreeNodeEx(head.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) { ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(ui::col::text)); ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapW - 40 * s); ImGui::TextUnformatted(it.text.c_str()); ImGui::PopTextWrapPos(); ImGui::PopStyleColor(); ImGui::TreePop(); } }
+            else { if (ImGui::TreeNodeEx(head.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) { ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(ui::col::text)); ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapW - 40 * s); ImGui::TextUnformatted(it.text.c_str()); ImGui::PopTextWrapPos(); ImGui::PopStyleColor(); if (ImGui::SmallButton("Copy result")) { ImGui::SetClipboardText(it.text.c_str()); ui::toast(Toast::Success, "Result copied"); } ImGui::TreePop(); } }
             ImGui::PopStyleColor(); ImGui::PopFont();
         } else {
             ImVec2 start = ImGui::GetCursorScreenPos();
             ImGui::PushFont(ui::fonts.bold); ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(accent));
             ImGui::SetCursorScreenPos(ImVec2(start.x + 14 * s, start.y)); ImGui::TextUnformatted(it.title.c_str()); ImGui::PopStyleColor(); ImGui::PopFont();
-            ImGui::SetCursorScreenPos(ImVec2(start.x + 14 * s, ImGui::GetCursorScreenPos().y));
-            ImGui::BeginGroup(); renderRich(it.text, wrapW - 14 * s); ImGui::EndGroup();
+            float afterTitleY = ImGui::GetCursorScreenPos().y;
+            if (!it.text.empty()) {
+                ImGui::SetCursorScreenPos(ImVec2(start.x + wrapW + 14 * s - 64 * s, start.y));
+                if (ui::button("Copy", ImVec2(60 * s, 20 * s), accent)) { ImGui::SetClipboardText(it.text.c_str()); ui::toast(Toast::Success, "Message copied"); }
+            }
+            ImGui::SetCursorScreenPos(ImVec2(start.x + 14 * s, afterTitleY));
+            ImGui::BeginGroup(); renderRich(it.text, wrapW - 14 * s, &useCode, &useLang); ImGui::EndGroup();
             ImVec2 end = ImGui::GetCursorScreenPos();
             ImDrawList* dl = ImGui::GetWindowDrawList();
             dl->AddRectFilled(ImVec2(start.x, start.y + 2), ImVec2(start.x + 3, end.y - 2), ui::col::withAlpha(accent, born), 2.f);
@@ -324,6 +353,7 @@ void App::drawFeed(float h) {
         ImGui::PopID();
     }
     if (ai_.busy()) { ImGui::Dummy(ImVec2(0, 4)); ui::shimmerBar(ImGui::GetContentRegionAvail().x * 0.6f, 5 * s); }
+    if (!useCode.empty()) useCodeInTools(useCode, useLang);
     // stick to bottom when new items arrive
     if (log.size() != feedSeen_) { feedSeen_ = log.size(); if (feedStick_) ImGui::SetScrollHereY(1.f); }
     else if (ai_.busy() && feedStick_) ImGui::SetScrollHereY(1.f);
@@ -357,6 +387,7 @@ void App::drawAskPanel(float h) {
         if (!ready && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s", why.c_str());
     }
     ImGui::SameLine();
+    if (ai_.hasHistory()) { if (ui::button("Copy chat", ImVec2(0, 0), ui::col::cyan, false, Icon::Copy)) { ImGui::SetClipboardText(chatAsText().c_str()); ui::toast(Toast::Success, "Whole conversation copied"); } ImGui::SameLine(); }
     if (ai_.hasHistory() && !ai_.busy()) { if (ui::button("New chat", ImVec2(0, 0), ui::col::purple, false, Icon::Refresh)) { ai_.reset(); plan_ = heng::Plan(); selected_.clear(); hasReport_ = false; } ImGui::SameLine(); }
     if (!ready) { ImGui::AlignTextToFramePadding(); ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(ui::col::yellow), "%s", why.c_str());
                   ImGui::SameLine(); if (why.find("Settings") != std::string::npos && ui::button("Open settings", ImVec2(0, 0), ui::col::yellow)) { settingsOpen_ = true; } }

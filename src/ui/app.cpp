@@ -23,6 +23,7 @@ void App::init() {
     }
     selProfile_ = cfg_.activeProfile;
     ui::setAnimations(cfg_.animations);
+    initToolbox();
     if (!cfg_.lastTargetPath.empty()) {
         std::error_code ec;
         if (fs::exists(P(cfg_.lastTargetPath), ec)) setTargetPath(cfg_.lastTargetPath);
@@ -34,6 +35,7 @@ void App::shutdown() {
     ai_.cancel();
     if (test_.th.joinable()) test_.th.join();
     if (scanTh_.joinable()) scanTh_.join();
+    toolbox_.cancelJob();
     if (!cfgPath_.empty()) saveConfig();
 }
 
@@ -54,7 +56,7 @@ bool App::consumeScaleChange(float& s) {
 
 // ----------------------------------------------------------------- frame
 static const char* pageTitle(Page p) {
-    switch (p) { case Page::Workspace: return "Workspace"; case Page::Plan: return "Plan"; case Page::Memory: return "Memory"; case Page::Output: return "Output"; case Page::About: return "About"; }
+    switch (p) { case Page::Workspace: return "Workspace"; case Page::Plan: return "Plan"; case Page::Memory: return "Memory"; case Page::Tools: return "Tools"; case Page::Output: return "Output"; case Page::About: return "About"; }
     return "";
 }
 static const char* pageSub(Page p) {
@@ -62,6 +64,7 @@ static const char* pageSub(Page p) {
         case Page::Workspace: return "Pick a target, tell Happy what you want changed.";
         case Page::Plan: return "Review every change before anything is written.";
         case Page::Memory: return "Find values in a running game and name them for the AI.";
+        case Page::Tools: return "Decompile with Ghidra & friends, then recompile your edits.";
         case Page::Output: return "Modified files live here. Install them with a backup.";
         case Page::About: return "";
     }
@@ -100,6 +103,7 @@ void App::frame(ImVec2 display) {
         case Page::Workspace: pageWorkspace(mainW, contentH); break;
         case Page::Plan: pagePlan(mainW, contentH); break;
         case Page::Memory: pageMemory(mainW, contentH); break;
+        case Page::Tools: pageTools(mainW, contentH); break;
         case Page::Output: pageOutput(mainW, contentH); break;
         case Page::About: pageAbout(mainW, contentH); break;
     }
@@ -115,6 +119,9 @@ void App::frame(ImVec2 display) {
         else if (purpose == 2) { targetKind_ = 1; setTargetPath(chosen); }
         else if (purpose == 3) { std::string e; if (ws_.addAttachment(chosen, e)) ui::toast(Toast::Success, "Attached " + heng::baseNameOf(chosen)); else ui::toast(Toast::Error, e); }
         else if (purpose == 4) { cfg_.outputDir = chosen; markDirty(); }
+        else if (purpose == 6) { dcInput_ = chosen; }
+        else if (purpose == 7) { std::string e; std::vector<uint8_t> b; if (readWholeFile(chosen, b, e)) { srcBuf_.assign(b.begin(), b.end()); std::string l = heng::sourceLang(chosen); if (!l.empty()) srcLang_ = l; if (srcName_.empty() || srcName_ == "patched") { std::string n = heng::baseNameOf(chosen); size_t d = n.find_last_of('.'); srcName_ = d == std::string::npos ? n : n.substr(0, d); } ui::toast(Toast::Success, "Loaded " + heng::baseNameOf(chosen)); } else ui::toast(Toast::Error, e); }
+        else if (purpose == 8 && !toolPickId_.empty()) { cfg_.toolPaths[toolPickId_] = chosen; markDirty(); initToolbox(); ui::toast(Toast::Info, "Path saved - rescanning tools"); }
         else if (purpose == 5) { targetKind_ = 2; setTargetPath(chosen); }
     }
     ui::drawToasts(display);
@@ -145,7 +152,7 @@ void App::drawSidebar(float w, float h) {
     float nw = w - ImGui::GetStyle().WindowPadding.x * 2;
     struct Nav { const char* n; Icon ic; Page pg; } items[] = {
         {"Workspace", Icon::Workspace, Page::Workspace}, {"Plan", Icon::Plan, Page::Plan},
-        {"Memory", Icon::Memory, Page::Memory}, {"Output", Icon::Folder, Page::Output}};
+        {"Memory", Icon::Memory, Page::Memory}, {"Tools", Icon::Tools, Page::Tools}, {"Output", Icon::Folder, Page::Output}};
     for (auto& it : items) {
         ImVec2 q = ImGui::GetCursorScreenPos();
         if (ui::navItem(it.n, it.ic, page_ == it.pg, nw)) page_ = it.pg;

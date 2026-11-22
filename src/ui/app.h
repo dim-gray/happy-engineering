@@ -17,11 +17,12 @@
 #include "app/workspace.h"
 #include "app/ai_session.h"
 #include "app/imgconv.h"
+#include "app/toolbox.h"
 #include "platform/platform.h"
 
 namespace he {
 
-enum class Page { Workspace = 0, Plan, Memory, Output, About };
+enum class Page { Workspace = 0, Plan, Memory, Tools, Output, About };
 
 // ---- in-app file browser (works the same on Windows and Linux) ---------------
 class FileBrowser {
@@ -60,6 +61,7 @@ public:
     void debugSetPage(Page p) { page_ = p; }
     void debugOpenSettings(int tab) { settingsOpen_ = true; settingsTab_ = tab; }
     void debugLoadDemo();
+    void debugToolsTab(int t) { toolsTab_ = t; }
     heng::AppConfig& config() { return cfg_; }
 
 private:
@@ -71,6 +73,7 @@ private:
     void pageWorkspace(float w, float h);
     void pagePlan(float w, float h);
     void pageMemory(float w, float h);
+    void pageTools(float w, float h);
     void pageOutput(float w, float h);
     void pageAbout(float w, float h);
     // workspace helpers
@@ -94,6 +97,15 @@ private:
     void attachMemory(const ProcPick& p);
     void startScan(bool first);
     void tickMemory();
+    // tools helpers
+    void initToolbox();
+    void toolsListPanel(float w, float h);
+    void toolsDecompilePanel(float w, float h);
+    void toolsBuildPanel(float w, float h);
+    std::string buildsBase() const;
+    void useCodeInTools(const std::string& code, const std::string& lang);
+    std::string latestAiCode(std::string* lang) const;
+    std::string chatAsText() const;
     // output helpers
     std::string outputBase() const;
     std::vector<std::string> listOutputs() const;
@@ -150,6 +162,15 @@ private:
     std::atomic<bool> scanning_{false}; std::thread scanTh_; std::string scanMsg_;
     double lastWatchRead_ = 0, lastFreeze_ = 0;
     std::map<std::string, std::string> writeBuf_;
+
+    // tools page
+    Toolbox toolbox_; bool toolboxReady_ = false;
+    std::string toolPickId_;
+    std::string dcInput_, dcFunc_, dcTool_;            // decompile form (dcTool_ "" = auto)
+    std::string dcShown_; std::string dcShownFile_;    // text currently displayed
+    std::string srcBuf_, srcName_ = "patched", srcFlags_ = "-O2 -Wall", srcLang_ = "c", cpTool_;
+    int cpBits_ = 0; std::string buildNote_, lastLogSeen_;
+    bool buildWasFix_ = false; int toolsTab_ = 0; std::string dcToken_;
 
     // output page
     std::string selOutput_; std::vector<std::string> outputsCache_; double outputsAt_ = -100;

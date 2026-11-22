@@ -8,6 +8,7 @@ std::string exeDir() { return "."; }
 std::string homeDir() { return "/tmp/claude-0"; }
 std::string osName() { return "Linux"; }
 bool openInFileManager(const std::string&) { return true; }
+bool is64BitSystem() { return true; }
 std::string sealSecret(const std::string& p) { return p; }
 std::string unsealSecret(const std::string& p) { return p; }
 const char* secretProtectionName() { return "obfuscated and stored in a private (chmod 600) file - not strong encryption"; }

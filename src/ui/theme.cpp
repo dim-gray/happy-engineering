@@ -205,6 +205,9 @@ void drawIcon(ImDrawList* dl, Icon ic, ImVec2 c, float s, ImU32 col_) {
             L(-.85f, .45f, -.3f, -.1f); L(-.3f, -.1f, .15f, .35f); L(.15f, .35f, .4f, .1f); L(.4f, .1f, .85f, .5f); dl->AddCircleFilled(ImVec2(c.x + r * .4f, c.y - r * .25f), th, col_); break;
         case Icon::Key:
             dl->AddCircle(ImVec2(c.x - r * .4f, c.y), r * .4f, col_, 16, th); L(-.0f, 0, .9f, 0); L(.6f, 0, .6f, .35f); L(.9f, 0, .9f, .3f); break;
+        case Icon::Tools:   // wrench-like: handle + open jaw
+            L(-.85f, .85f, .25f, -.25f); L(-.55f, .95f, .35f, -.05f);
+            dl->PathArcTo(ImVec2(c.x + r * .5f, c.y - r * .5f), r * .5f, 0.9f, 5.4f, 14); dl->PathStroke(col_, 0, th); break;
         case Icon::Play: dl->AddTriangleFilled(ImVec2(c.x - r * .5f, c.y - r * .7f), ImVec2(c.x - r * .5f, c.y + r * .7f), ImVec2(c.x + r * .75f, c.y), col_); break;
         case Icon::Refresh:
             dl->PathArcTo(c, r * .7f, 0.6f, 5.6f, 20); dl->PathStroke(col_, 0, th); L(.62f, -.1f, .8f, -.6f); L(.62f, -.1f, .2f, -.25f); break;

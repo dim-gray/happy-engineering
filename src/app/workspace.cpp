@@ -81,6 +81,7 @@ bool Workspace::readTarget(const std::string& rel, std::vector<uint8_t>& out, st
 }
 
 bool Workspace::read(const std::string& path, uint64_t offset, uint64_t len, std::vector<uint8_t>& out, uint64_t& total, std::string& err) {
+    if (path.compare(0, 7, "_happy/") == 0) return virtualRead(path, offset, len, out, total, err);
     std::lock_guard<std::mutex> lk(mu_);
     if (root_.empty()) { err = "no target folder selected"; return false; }
     std::string arc, inner;
@@ -111,6 +112,23 @@ bool Workspace::read(const std::string& path, uint64_t offset, uint64_t len, std
 }
 
 bool Workspace::list(const std::string& dir, bool recursive, size_t maxEntries, std::vector<heng::HostEntry>& out, std::string& err) {
+    if (dir == "_happy" || dir.compare(0, 7, "_happy/") == 0) {
+        if (!tb_) { err = "tools are not available"; return false; }
+        std::string rest = dir.size() > 7 ? dir.substr(7) : std::string();
+        while (!rest.empty() && rest.back() == '/') rest.pop_back();
+        if (rest.empty()) {
+            heng::HostEntry a; a.path = "_happy/decomp"; a.isDir = true; a.size = 0; out.push_back(a);
+            heng::HostEntry b; b.path = "_happy/build"; b.isDir = true; b.size = 0; out.push_back(b);
+            return true;
+        }
+        if (rest != "decomp" && rest != "build") { err = "only _happy/decomp and _happy/build exist"; return false; }
+        std::error_code ec;
+        for (fs::directory_iterator it(P(tb_->env().workDir + "/" + rest), ec), end; !ec && it != end && out.size() < maxEntries; it.increment(ec)) {
+            if (!it->is_regular_file(ec)) continue;
+            heng::HostEntry e; e.path = "_happy/" + rest + "/" + S(it->path().filename()); e.isDir = false; e.size = fs::file_size(it->path(), ec); out.push_back(e);
+        }
+        return true;
+    }
     std::lock_guard<std::mutex> lk(mu_);
     if (root_.empty()) { err = "no target folder selected"; return false; }
     // inside an archive?
@@ -258,6 +276,101 @@ int Workspace::restoreBackups(const std::string& targetRoot, std::string& err) {
         ++n;
     }
     return n;
+}
+
+} // namespace he
+
+// ---------------------------------------------------------------- external tools (AI side)
+namespace he {
+
+bool Workspace::virtualRead(const std::string& path, uint64_t offset, uint64_t len, std::vector<uint8_t>& out, uint64_t& total, std::string& err) {
+    if (!tb_) { err = "tools are not available"; return false; }
+    std::string rest = path.substr(7);
+    if (rest.compare(0, 7, "decomp/") != 0 && rest.compare(0, 6, "build/") != 0) { err = "only _happy/decomp/ and _happy/build/ exist"; return false; }
+    std::string norm; if (!heng::normalizeRelPath(rest, norm)) { err = "bad path"; return false; }
+    std::error_code ec; fs::path p = P(tb_->env().workDir + "/" + norm);
+    if (!fs::is_regular_file(p, ec)) { err = "no such file: " + path; return false; }
+    total = fs::file_size(p, ec);
+    std::ifstream f(p, std::ios::binary); if (!f) { err = "cannot open " + path; return false; }
+    if (offset > total) offset = total;
+    uint64_t n = std::min<uint64_t>(len, total - offset);
+    out.resize((size_t)n); f.seekg((std::streamoff)offset); if (n) f.read((char*)out.data(), (std::streamsize)n);
+    out.resize((size_t)f.gcount());
+    return true;
+}
+
+bool Workspace::materialize(const std::string& path, const std::string& attachment, std::string& real, std::string& err) {
+    if (!attachment.empty()) {
+        std::lock_guard<std::mutex> lk(mu_);
+        for (const AttachmentFile& a : att_) if (a.name == attachment) { real = a.path; return true; }
+        err = "no attachment named '" + attachment + "'"; return false;
+    }
+    std::string norm;
+    if (!heng::normalizeRelPath(path, norm)) { err = "bad or missing \"path\""; return false; }
+    std::string arc, inner;
+    if (!splitArchivePath(norm, arc, inner)) {
+        std::lock_guard<std::mutex> lk(mu_);
+        if (root_.empty()) { err = "no target folder selected"; return false; }
+        real = joinRel(root_, norm); return true;
+    }
+    std::vector<uint8_t> data; uint64_t total = 0;
+    if (!read(norm, 0, (uint64_t)1 << 31, data, total, err)) return false;
+    std::string dir = tb_->env().workDir + "/tmp"; std::error_code ec; fs::create_directories(P(dir), ec);
+    real = dir + "/" + heng::baseNameOf(inner);
+    std::ofstream f(P(real), std::ios::binary | std::ios::trunc);
+    if (!f) { err = "cannot write temp file"; return false; }
+    f.write((const char*)data.data(), (std::streamsize)data.size());
+    return true;
+}
+
+std::string Workspace::external(const std::string& tool, const heng::JsonValue& a) {
+    if (!tb_) return "ERROR: tools are not available";
+    std::ostringstream o;
+    if (tool == "list_tools") {
+        std::vector<ToolStatus> st = tb_->statuses();
+        if (st.empty()) return "(tool scan has not finished yet; try again in a moment)";
+        for (const ToolStatus& s : st) {
+            const heng::ToolDef* d = heng::findToolDef(s.id); if (!d) continue;
+            o << (s.found ? "[installed] " : "[missing]   ") << s.id << " - " << d->name << " (" << heng::toolKindName(d->kind) << ")";
+            if (s.found && !s.version.empty()) o << "  " << s.version;
+            o << "\n";
+        }
+        o << "Use decompile on a file; use compile_code to test-build source. Missing tools can be installed from the Tools page.";
+        return o.str();
+    }
+    std::string err;
+    if (tool == "decompile") {
+        std::string real;
+        if (!materialize(a.getString("path"), a.getString("attachment"), real, err)) return "ERROR: " + err;
+        JobResult r = tb_->decompile(a.getString("tool"), real, a.getString("function"), true, nullptr);
+        if (!r.ok) return "ERROR: " + r.error;
+        std::string rel = "_happy/decomp/" + heng::baseNameOf(r.outFile);
+        std::string t = r.text; bool cut = t.size() > 9000; if (cut) t = heng::cutUtf8(t, 9000);
+        o << "--- " << r.tool << " output" << (r.fromCache ? " (cached)" : "") << ", saved as " << rel << " (" << r.text.size() << " chars) ---\n" << t;
+        if (cut) o << "\n...[more: read_text {\"path\":\"" << rel << "\",\"offset\":9000} or search_text in _happy/decomp]";
+        return o.str();
+    }
+    if (tool == "compile_code") {
+        std::string code = a.getString("code");
+        if (code.empty()) return "ERROR: missing \"code\"";
+        if (code.size() > 400000) return "ERROR: code too large";
+        std::string lang = a.getString("language"); if (lang.empty()) lang = "c";
+        if (lang == "c++") lang = "cpp";
+        if (lang != "c" && lang != "cpp" && lang != "asm") return "ERROR: language must be c, cpp or asm";
+        std::string name = a.getString("name"); if (name.empty()) name = "happy_build";
+        std::string clean; for (char c : name) clean.push_back((std::isalnum((unsigned char)c) || c == '_' || c == '-') ? c : '_');
+        std::string arch = a.getString("arch"); int bits = arch == "32" ? 32 : arch == "64" ? 64 : 0;
+        std::string dir = tb_->env().workDir + "/src"; std::error_code ec; fs::create_directories(P(dir), ec);
+        std::string src = dir + "/" + clean + "." + lang;
+        { std::ofstream f(P(src), std::ios::binary | std::ios::trunc); if (!f) return "ERROR: cannot write source"; f << code; }
+        std::vector<std::string> srcs(1, src);
+        JobResult r = tb_->compile(a.getString("compiler"), srcs, clean, a.getString("flags"), bits, nullptr);
+        std::string log = r.text.size() > 6000 ? heng::cutUtf8(r.text, 6000) + "\n...[truncated]" : r.text;
+        if (!r.ok) return "BUILD FAILED (" + r.tool + "): " + r.error + "\n" + log;
+        o << "BUILD OK with " << r.tool << " -> _happy/build/" << heng::baseNameOf(r.outFile) << "\n" << (log.empty() ? "(no compiler messages)" : log);
+        return o.str();
+    }
+    return "ERROR: unknown tool";
 }
 
 } // namespace he

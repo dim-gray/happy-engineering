@@ -14,6 +14,7 @@
 #include "core/context.h"
 #include "archive.h"
 #include "fsutil.h"
+#include "toolbox.h"
 
 namespace he {
 
@@ -42,6 +43,8 @@ public:
     bool list(const std::string& dir, bool recursive, size_t maxEntries, std::vector<heng::HostEntry>& out, std::string& err) override;
     bool read(const std::string& path, uint64_t offset, uint64_t len, std::vector<uint8_t>& out, uint64_t& total, std::string& err) override;
     std::vector<std::string> attachmentNames() override;
+    std::string external(const std::string& tool, const heng::JsonValue& args) override;
+    void setToolbox(Toolbox* t) { tb_ = t; }
 
     // Plain recursive file list for the initial context (no archive expansion).
     std::vector<heng::FileEntry> scanFolder(size_t maxFiles, bool& truncated);
@@ -56,6 +59,9 @@ private:
     bool readFullLocked(const std::string& rel, std::vector<uint8_t>& out, std::string& err);
     ZipReader* zipLocked(const std::string& archiveRel, std::string& err);
 
+    bool virtualRead(const std::string& path, uint64_t offset, uint64_t len, std::vector<uint8_t>& out, uint64_t& total, std::string& err);
+    bool materialize(const std::string& path, const std::string& attachment, std::string& real, std::string& err);
+    Toolbox* tb_ = nullptr;
     std::mutex mu_;
     std::string root_, focus_;
     std::vector<AttachmentFile> att_;

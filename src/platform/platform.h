@@ -16,6 +16,7 @@ std::string configDir();      // where config.cfg lives (created on demand)
 std::string documentsDir();   // user's Documents folder (default Output location root)
 std::string exeDir();         // folder of the running executable
 std::string homeDir();
+bool is64BitSystem();          // false on 32-bit Windows/Linux (64-bit-only tools cannot run)
 std::string osName();         // "Windows" / "Linux"
 bool openInFileManager(const std::string& path);   // reveal a folder in Explorer / xdg-open
 

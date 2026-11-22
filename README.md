@@ -14,6 +14,9 @@ You pick a target (a file, a game folder, an HTML file or a running process), te
 - **Diff review, dry-run check, per-action checkboxes**; results are written to an **Output** folder first. *Install into game* is a separate, confirmed step that keeps `.hebak` backups; *Restore originals* undoes it.
 - **Memory scanner** like Cheat Engine (first/next scan, watch list with labels, write, freeze). The AI only sees your labels.
 - Attach images, audio, text or any file; drag & drop onto the window.
+- **Tools page (decompile / recompile)**: Happy detects installed external tools on Windows and Linux and runs them for you. Decompilers/disassemblers: **Ghidra** (headless, exports C for every function), **radare2**, **Rizin**, **RetDec**, **ILSpy** (.NET), **objdump**. Compilers/assemblers: gcc, g++, clang, clang++, MinGW-w64 (32- and 64-bit .exe), Tiny C, MSVC `cl`, NASM. Each tool has *Path...* (point at the exe or the unpacked folder), *Download* and *Install help*. Ghidra and RetDec need a 64-bit system (the page says so on 32-bit PCs); radare2, Rizin and objdump work everywhere.
+- **The AI can use them too**: tools `list_tools`, `decompile` (output saved under `_happy/decomp/`, readable with `read_text`/`search_text`) and `compile_code` (test-builds source the AI wrote into `_happy/build/`). In the Recompile tab you can build, save the binary to the Builds folder, or press *Ask AI to fix* with the compiler errors.
+- **Copy from the AI**: every message has a *Copy* button, every code block has *Copy* and (for C/C++/asm) *To Tools*, tool results have *Copy result*, and *Copy chat* copies the whole conversation.
 
 ## What it does not do
 

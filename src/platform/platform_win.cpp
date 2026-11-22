@@ -55,6 +55,11 @@ std::string exeDir() {
 std::string homeDir() { std::string d = folder(CSIDL_PROFILE); return d.empty() ? "C:\\" : d; }
 std::string osName() { return "Windows"; }
 
+bool is64BitSystem() {
+    SYSTEM_INFO si; GetNativeSystemInfo(&si);
+    return si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64 || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64;
+}
+
 bool openInFileManager(const std::string& path) {
     return (INT_PTR)ShellExecuteW(nullptr, L"open", w(path).c_str(), nullptr, nullptr, SW_SHOWNORMAL) > 32;
 }

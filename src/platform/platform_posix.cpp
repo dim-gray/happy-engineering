@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/utsname.h>
 #include <curl/curl.h>
 #include "platform.h"
 
@@ -51,6 +52,11 @@ std::string exeDir() {
     return s == std::string::npos ? "." : p.substr(0, s);
 }
 std::string osName() { return "Linux"; }
+
+bool is64BitSystem() {
+    struct utsname u; if (uname(&u) == 0) { std::string m = u.machine; return m.find("64") != std::string::npos; }
+    return sizeof(void*) == 8;
+}
 
 bool openInFileManager(const std::string& path) {
     pid_t pid = fork();

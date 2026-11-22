@@ -23,7 +23,7 @@ void App::debugLoadDemo() {
     ai_.addLog(LogKind::ToolResult, "list_files", "data/lang/en.ini  (62 B)\ndata.pk3  (1 KB)\ndata.pk3!/textures/logo.png (1 B)");
     ai_.addLog(LogKind::ToolCall, "read_text", "{\"tool\":\"read_text\",\"path\":\"data/lang/en.ini\"}");
     ai_.addLog(LogKind::ToolResult, "read_text", "[menu]\nstart=Start Game\nquit=Quit\nsword_cost=120");
-    ai_.addLog(LogKind::Assistant, "Happy", "Found it. `sword_cost` is in **data/lang/en.ini**. Here is what I'd change:\n```happy-plan\n{\"summary\":\"...\"}\n```");
+    ai_.addLog(LogKind::Assistant, "Happy", "Found it. `sword_cost` is in **data/lang/en.ini**. Here is what I'd change:\n```c\nint sword_cost(void) {\n    return 50;\n}\n```\n```happy-plan\n{\"summary\":\"...\"}\n```");
     heng::Plan p = heng::extractPlan("```happy-plan\n{\"summary\":\"Sword costs 50 gold, menu in Romanian\",\"actions\":["
         "{\"type\":\"replace_text\",\"file\":\"data/lang/en.ini\",\"find\":\"sword_cost=120\",\"replace\":\"sword_cost=50\",\"note\":\"price tweak\"},"
         "{\"type\":\"replace_text\",\"file\":\"data/lang/en.ini\",\"find\":\"Start Game\",\"replace\":\"Porneste jocul\"},"

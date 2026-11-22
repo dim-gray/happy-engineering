@@ -27,9 +27,15 @@ struct FakeHost : IToolHost {
         return true;
     }
     std::vector<std::string> attachmentNames() override { return {"logo.png"}; }
+    std::string external(const std::string& t, const JsonValue& a) override { return "EXT:" + t + ":" + a.getString("path"); }
 };
 
 int main() {
+    { FakeHost h; ToolCall c; c.name = "decompile"; bool ok = false; c.args = parseJson("{\"tool\":\"decompile\",\"path\":\"a.exe\"}", &ok);
+      CHECK(runTool(c, h) == "EXT:decompile:a.exe");
+      c.name = "compile_code"; CHECK(runTool(c, h).compare(0, 12, "EXT:compile_") == 0);
+      CHECK(std::string(agentProtocolPrompt()).find("decompile") != std::string::npos); }
+
     // tool block parsing
     std::string reply = "Let me look.\n```happy-tool\n{\"tool\":\"list_files\",\"path\":\"data\"}\n```\n```happy-tool\n{bad}\n```\n";
     auto calls = extractToolCalls(reply);

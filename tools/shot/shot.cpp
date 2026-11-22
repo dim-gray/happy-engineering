@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     he::App app; app.init(); app.setDpiScale(1.f);
     app.debugLoadDemo();
     if (page == "plan") app.debugSetPage(he::Page::Plan); else if (page == "memory") app.debugSetPage(he::Page::Memory);
-    else if (page == "output") app.debugSetPage(he::Page::Output); else if (page == "about") app.debugSetPage(he::Page::About);
+    else if (page == "output") app.debugSetPage(he::Page::Output); else if (page == "tools" || page == "recompile") { app.debugSetPage(he::Page::Tools); if (page == "recompile") app.debugToolsTab(1); } else if (page == "about") app.debugSetPage(he::Page::About);
     if (settingsTab >= 0) app.debugOpenSettings(settingsTab);
     std::vector<uint8_t> fb;
     for (int f = 0; f < 90; ++f) {

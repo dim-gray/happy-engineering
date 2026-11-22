@@ -7,6 +7,7 @@
 #include <vector>
 #include <sstream>
 #include <functional>
+#include <map>
 #include "chat.h"
 #include "settings.h"   // detail::escapeNewlines / toHex helpers
 
@@ -35,6 +36,7 @@ struct AppConfig {
     bool backupOnInstall = true;
     int agentMaxSteps = 12;
     bool confirmBeforeApply = true;
+    std::map<std::string, std::string> toolPaths;   // tool id -> user chosen exe/folder
 
     ApiProfile* active() {
         if (profiles.empty()) return nullptr;
@@ -57,6 +59,8 @@ inline std::string serializeConfig(const AppConfig& c, const SecretFn& seal) {
     o << "backup_on_install=" << (c.backupOnInstall ? 1 : 0) << "\n";
     o << "confirm_apply=" << (c.confirmBeforeApply ? 1 : 0) << "\n";
     o << "agent_max_steps=" << c.agentMaxSteps << "\n";
+    for (std::map<std::string, std::string>::const_iterator it = c.toolPaths.begin(); it != c.toolPaths.end(); ++it)
+        if (!it->second.empty()) o << "tool." << it->first << "=" << it->second << "\n";
     for (size_t i = 0; i < c.profiles.size(); ++i) {
         const ApiProfile& p = c.profiles[i];
         o << "profile=" << detail::toHex(p.name) << "\n";   // starts a new profile
@@ -89,6 +93,7 @@ inline AppConfig parseConfig(const std::string& text, const SecretFn& unseal) {
         else if (k == "backup_on_install") c.backupOnInstall = v != "0";
         else if (k == "confirm_apply") c.confirmBeforeApply = v != "0";
         else if (k == "agent_max_steps") { c.agentMaxSteps = std::atoi(v.c_str()); if (c.agentMaxSteps < 1 || c.agentMaxSteps > 40) c.agentMaxSteps = 12; }
+        else if (k.compare(0, 5, "tool.") == 0) { if (!v.empty()) c.toolPaths[k.substr(5)] = v; }
         else if (k == "profile") { ApiProfile p; p.name = detail::fromHex(v); c.profiles.push_back(p); }
         else if (!c.profiles.empty()) {
             ApiProfile& p = c.profiles.back();
