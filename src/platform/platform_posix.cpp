@@ -137,6 +137,50 @@ HttpResult httpPost(const heng::ApiRequest& req, int timeoutSec, std::atomic<boo
     return res;
 }
 
+struct FetchCtx { const std::function<bool(const char*, size_t)>* sink; const std::function<void(uint64_t, uint64_t)>* progress; std::atomic<bool>* cancel; bool aborted; };
+static size_t fetchWrite(char* p, size_t sz, size_t n, void* ud) {
+    FetchCtx* c = (FetchCtx*)ud; if (!(*c->sink)(p, sz * n)) { c->aborted = true; return 0; } return sz * n;
+}
+static int fetchProgress(void* ud, curl_off_t total, curl_off_t now, curl_off_t, curl_off_t) {
+    FetchCtx* c = (FetchCtx*)ud;
+    if (c->progress && *c->progress) (*c->progress)((uint64_t)now, (uint64_t)total);
+    return (c->cancel && c->cancel->load()) ? 1 : 0;
+}
+FetchResult httpFetch(const std::string& url, const std::vector<std::pair<std::string, std::string>>& headers, int timeoutSec,
+                      std::atomic<bool>* cancel, const std::function<bool(const char*, size_t)>& sink,
+                      const std::function<void(uint64_t, uint64_t)>& progress) {
+    FetchResult res;
+    static bool inited = false; if (!inited) { curl_global_init(CURL_GLOBAL_DEFAULT); inited = true; }
+    CURL* c = curl_easy_init(); if (!c) { res.error = "libcurl init failed"; return res; }
+    struct curl_slist* hl = nullptr; for (auto& kv : headers) hl = curl_slist_append(hl, (kv.first + ": " + kv.second).c_str());
+    FetchCtx ctx{&sink, &progress, cancel, false}; char eb[CURL_ERROR_SIZE] = {0};
+    curl_easy_setopt(c, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(c, CURLOPT_HTTPHEADER, hl);
+    curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(c, CURLOPT_MAXREDIRS, 8L);
+    curl_easy_setopt(c, CURLOPT_PROTOCOLS, (long)CURLPROTO_HTTPS);
+    curl_easy_setopt(c, CURLOPT_REDIR_PROTOCOLS, (long)CURLPROTO_HTTPS);
+    curl_easy_setopt(c, CURLOPT_USERAGENT, "HappyEngineering/1.2");
+    curl_easy_setopt(c, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, fetchWrite);
+    curl_easy_setopt(c, CURLOPT_WRITEDATA, &ctx);
+    curl_easy_setopt(c, CURLOPT_ERRORBUFFER, eb);
+    curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT, 20L);
+    curl_easy_setopt(c, CURLOPT_LOW_SPEED_LIMIT, 1024L); curl_easy_setopt(c, CURLOPT_LOW_SPEED_TIME, (long)timeoutSec);
+    curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, fetchProgress);
+    curl_easy_setopt(c, CURLOPT_XFERINFODATA, &ctx);
+    CURLcode rc = curl_easy_perform(c);
+    long code = 0; curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &code); res.status = (int)code;
+    if (rc == CURLE_OK) res.ok = true;
+    else if (cancel && cancel->load()) res.error = "cancelled";
+    else if (ctx.aborted) res.error = "aborted";
+    else res.error = std::string("download failed: ") + (eb[0] ? eb : curl_easy_strerror(rc));
+    curl_slist_free_all(hl); curl_easy_cleanup(c);
+    return res;
+}
+
 static bool readFileStr(const std::string& p, std::string& out) {
     std::ifstream f(p, std::ios::binary); if (!f) return false;
     std::ostringstream o; o << f.rdbuf(); out = o.str(); return true;

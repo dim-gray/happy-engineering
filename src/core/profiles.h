@@ -36,6 +36,7 @@ struct AppConfig {
     bool backupOnInstall = true;
     int agentMaxSteps = 12;
     bool confirmBeforeApply = true;
+    bool autoApproveInstalls = false;   // let the AI download tools without asking each time
     std::map<std::string, std::string> toolPaths;   // tool id -> user chosen exe/folder
 
     ApiProfile* active() {
@@ -58,6 +59,7 @@ inline std::string serializeConfig(const AppConfig& c, const SecretFn& seal) {
     o << "animations=" << (c.animations ? 1 : 0) << "\n";
     o << "backup_on_install=" << (c.backupOnInstall ? 1 : 0) << "\n";
     o << "confirm_apply=" << (c.confirmBeforeApply ? 1 : 0) << "\n";
+    o << "auto_install=" << (c.autoApproveInstalls ? 1 : 0) << "\n";
     o << "agent_max_steps=" << c.agentMaxSteps << "\n";
     for (std::map<std::string, std::string>::const_iterator it = c.toolPaths.begin(); it != c.toolPaths.end(); ++it)
         if (!it->second.empty()) o << "tool." << it->first << "=" << it->second << "\n";
@@ -92,6 +94,7 @@ inline AppConfig parseConfig(const std::string& text, const SecretFn& unseal) {
         else if (k == "animations") c.animations = v != "0";
         else if (k == "backup_on_install") c.backupOnInstall = v != "0";
         else if (k == "confirm_apply") c.confirmBeforeApply = v != "0";
+        else if (k == "auto_install") c.autoApproveInstalls = v == "1";
         else if (k == "agent_max_steps") { c.agentMaxSteps = std::atoi(v.c_str()); if (c.agentMaxSteps < 1 || c.agentMaxSteps > 40) c.agentMaxSteps = 12; }
         else if (k.compare(0, 5, "tool.") == 0) { if (!v.empty()) c.toolPaths[k.substr(5)] = v; }
         else if (k == "profile") { ApiProfile p; p.name = detail::fromHex(v); c.profiles.push_back(p); }

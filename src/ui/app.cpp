@@ -124,6 +124,7 @@ void App::frame(ImVec2 display) {
         else if (purpose == 8 && !toolPickId_.empty()) { cfg_.toolPaths[toolPickId_] = chosen; markDirty(); initToolbox(); ui::toast(Toast::Info, "Path saved - rescanning tools"); }
         else if (purpose == 5) { targetKind_ = 2; setTargetPath(chosen); }
     }
+    drawInstallApproval();
     ui::drawToasts(display);
     lastPage_ = page_;
 }
@@ -424,6 +425,8 @@ void App::settingsBehavior() {
     ImGui::Dummy(ImVec2(0, 6));
     if (ImGui::Checkbox("Back up originals when installing into the game (.hebak)", &cfg_.backupOnInstall)) markDirty();
     if (ImGui::Checkbox("Always ask before applying", &cfg_.confirmBeforeApply)) markDirty();
+    if (ImGui::Checkbox("Let the AI download & install tools without asking (not recommended)", &cfg_.autoApproveInstalls)) { toolbox_.setAutoApprove(cfg_.autoApproveInstalls); markDirty(); }
+    ui::helpMarker("By default every tool download asks you first. Downloads only come from official GitHub / Adoptium / nasm.us links and are checksum-verified when the project publishes one.");
     ImGui::Dummy(ImVec2(0, 10));
     ImGui::PushTextWrapPos(0);
     ImGui::TextDisabled("Nothing is written to your game without you pressing Apply, and Apply only writes to the Output folder. Installing into the game is a separate step.");

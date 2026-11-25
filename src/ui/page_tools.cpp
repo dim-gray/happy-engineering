@@ -3,6 +3,8 @@
 #include "theme.h"
 #include "app/fsutil.h"
 #include "core/toolkit.h"
+#include "core/sha256.h"
+#include "core/install.h"
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -13,6 +15,40 @@ using namespace ui;
 static ImVec4 C4(ImU32 c) { return ImGui::ColorConvertU32ToFloat4(c); }
 static std::string tailOf(const std::string& s, size_t n) { return s.size() <= n ? s : "..." + s.substr(s.size() - n); }
 static std::string headOf(const std::string& s, size_t n) { return s.size() <= n ? s : s.substr(0, n) + "\n...[shown part only - use Copy for everything]"; }
+
+namespace {
+// Real network access for installs: official hosts only, https only, streamed to disk with a running SHA-256.
+class PlatformDownloader : public IDownloader {
+public:
+    bool getString(const std::string& url, std::string& out, std::string& err, std::atomic<bool>* cancel) override {
+        if (!allowed(url, err)) return false;
+        out.clear();
+        platform::FetchResult r = platform::httpFetch(url, {{"Accept", "application/vnd.github+json, application/json"}}, 60, cancel,
+            [&](const char* p, size_t n) { if (out.size() + n > (16u << 20)) return false; out.append(p, n); return true; }, nullptr);
+        if (!r.ok) err = r.error.empty() ? "HTTP " + std::to_string(r.status) : r.error;
+        return r.ok;
+    }
+    bool getFile(const std::string& url, const std::string& dest, std::string& sha, std::string& err, std::atomic<bool>* cancel,
+                 const std::function<void(uint64_t, uint64_t)>& progress) override {
+        if (!allowed(url, err)) return false;
+        std::ofstream f(fs::u8path(dest), std::ios::binary | std::ios::trunc);
+        if (!f) { err = "cannot write " + dest; return false; }
+        heng::Sha256 h; bool wrote = true;
+        platform::FetchResult r = platform::httpFetch(url, {}, 120, cancel,
+            [&](const char* p, size_t n) { h.update(p, n); f.write(p, (std::streamsize)n); wrote = (bool)f; return wrote; }, progress);
+        f.close();
+        if (!r.ok) { err = r.error.empty() ? "HTTP " + std::to_string(r.status) : r.error; std::error_code ec; fs::remove(fs::u8path(dest), ec); return false; }
+        if (!wrote) { err = "disk write failed (disk full?)"; return false; }
+        sha = h.hex(); return true;
+    }
+private:
+    static bool allowed(const std::string& url, std::string& err) {
+        std::string host, path; bool tls; int port;
+        if (!heng::splitUrl(url, host, path, tls, port) || !heng::isAllowedDownloadHost(host)) { err = "blocked: not an official download source"; return false; }
+        return true;
+    }
+};
+} // namespace
 
 void App::initToolbox() {
     ToolboxEnv env;
@@ -41,10 +77,46 @@ void App::initToolbox() {
     env.roots.push_back(home); env.roots.push_back(home + "/Downloads"); env.roots.push_back(home + "/tools");
     env.roots.push_back(platform::documentsDir());
     env.workDir = platform::configDir() + "/work";
+    env.toolsDir = platform::configDir() + "/tools";
+    if (!downloader_) downloader_.reset(new PlatformDownloader());
+    toolbox_.setDownloader(downloader_.get());
+    toolbox_.setAutoApprove(cfg_.autoApproveInstalls);
     toolbox_.configure(env, cfg_.toolPaths);
     toolbox_.rescanAsync();
     ws_.setToolbox(&toolbox_);
     toolboxReady_ = true;
+}
+
+void App::drawInstallApproval() {
+    float s = ImGui::GetFontSize() / 17.f;
+    InstallRequest rq;
+    bool pending = toolbox_.pendingApproval(rq);
+    if (pending && !ai_.busy()) { toolbox_.answerApproval(false); pending = false; }   // the AI run was stopped
+    if (pending && !wantApprovalPopup_) { wantApprovalPopup_ = true; ImGui::OpenPopup("##approveInstall"); }
+    if (!pending && wantApprovalPopup_) { wantApprovalPopup_ = false; }
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(.5f, .5f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(520 * s, 0), ImVec2(720 * s, 600 * s));
+    if (ImGui::BeginPopupModal("##approveInstall", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
+        ui::sectionLabel("Happy wants to download a tool", ui::col::orange);
+        if (!pending) { ImGui::CloseCurrentPopup(); ImGui::EndPopup(); return; }
+        ImGui::PushTextWrapPos(520 * s);
+        ImGui::PushFont(ui::fonts.bold); ImGui::TextUnformatted(rq.title.c_str()); ImGui::PopFont();
+        ImGui::TextDisabled("File: %s", rq.fileName.c_str());
+        if (rq.size) ImGui::TextDisabled("Size: %.0f MB", rq.size / 1048576.0);
+        std::string host, path; bool tls; int port; heng::splitUrl(rq.url, host, path, tls, port);
+        ImGui::TextDisabled("From: %s (official source, https)", host.c_str());
+        ImGui::TextDisabled("Into: %s", rq.destDir.c_str());
+        ImGui::TextColored(C4(rq.hasChecksum ? ui::col::green : ui::col::yellow), rq.hasChecksum ? "Checksum: published and will be verified" : "Checksum: none published by the project");
+        for (const std::string& a : rq.alsoInstalls) ImGui::TextColored(C4(ui::col::cyan), "Also needs: %s", a.c_str());
+        if (!rq.note.empty()) ImGui::TextColored(C4(ui::col::muted), "%s", rq.note.c_str());
+        ImGui::Dummy(ImVec2(0, 4 * s));
+        ImGui::TextDisabled("The program is only unpacked into Happy's own tools folder; Happy never runs the installer as administrator.");
+        ImGui::PopTextWrapPos();
+        ImGui::Dummy(ImVec2(0, 6 * s));
+        if (ui::button("Download", ImVec2(150 * s, 0), ui::col::green, true, Icon::Check)) { toolbox_.answerApproval(true); wantApprovalPopup_ = false; ImGui::CloseCurrentPopup(); }
+        ImGui::SameLine(); if (ui::button("Deny", ImVec2(120 * s, 0), ui::col::red)) { toolbox_.answerApproval(false); wantApprovalPopup_ = false; ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+    }
 }
 
 std::string App::buildsBase() const {
@@ -101,6 +173,22 @@ void App::toolsListPanel(float w, float h) {
     int found = 0; for (auto& x : st) if (x.found) ++found;
     ImGui::TextDisabled("%d of %d found", found, (int)st.size());
     if (scanning) ui::shimmerBar(ImGui::GetContentRegionAvail().x, 4 * s);
+    // install progress / result
+    {
+        InstallState is = toolbox_.installState();
+        if (is.active) {
+            ImGui::TextColored(C4(ui::col::orange), "%s", is.stage.c_str());
+            float frac = is.total ? (float)((double)is.done / (double)is.total) : 0.f;
+            ImGui::ProgressBar(is.total ? frac : -1.f * (float)ImGui::GetTime(), ImVec2(ImGui::GetContentRegionAvail().x, 8 * s), "");
+            if (is.total) ImGui::TextDisabled("%.0f / %.0f MB", is.done / 1048576.0, is.total / 1048576.0);
+            if (ui::button("Cancel install", ImVec2(0, 0), ui::col::red, false, Icon::Stop)) toolbox_.cancelInstall();
+        } else {
+            InstallOutcome lo = toolbox_.lastInstall();
+            if (!lo.message.empty()) {
+                ImGui::PushTextWrapPos(0); ImGui::TextColored(C4(lo.ok ? ui::col::green : ui::col::red), "%s", lo.message.c_str()); ImGui::PopTextWrapPos();
+            }
+        }
+    }
     ImGui::Dummy(ImVec2(0, 4 * s));
     if (!platform::is64BitSystem()) {
         ImGui::PushTextWrapPos(0);
@@ -108,9 +196,9 @@ void App::toolsListPanel(float w, float h) {
         ImGui::PopTextWrapPos(); ImGui::Dummy(ImVec2(0, 4 * s));
     }
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    heng::ToolKind groups[] = {heng::ToolKind::Decompiler, heng::ToolKind::Disassembler, heng::ToolKind::Compiler, heng::ToolKind::Assembler};
-    const char* gname[] = {"Decompilers", "Disassemblers", "Compilers", "Assemblers"};
-    for (int g = 0; g < 4; ++g) {
+    heng::ToolKind groups[] = {heng::ToolKind::Decompiler, heng::ToolKind::Disassembler, heng::ToolKind::Compiler, heng::ToolKind::Assembler, heng::ToolKind::Runtime};
+    const char* gname[] = {"Decompilers", "Disassemblers", "Compilers", "Assemblers", "Runtimes"};
+    for (int g = 0; g < 5; ++g) {
         bool any = false;
         for (const heng::ToolDef& d : heng::toolCatalog()) if (d.kind == groups[g]) any = true;
         if (!any) continue;
@@ -133,6 +221,13 @@ void App::toolsListPanel(float w, float h) {
             if (ts.found) { ImGui::TextColored(C4(ui::col::cyan), "%s", ts.path.c_str()); if (!ts.version.empty()) ImGui::TextColored(C4(ui::col::muted), "%s", ts.version.c_str()); }
             else if (!d.notes.empty()) ImGui::TextColored(C4(ui::col::yellow), "%s", d.notes.c_str());
             ImGui::PopFont(); ImGui::PopTextWrapPos();
+            if (!ts.found) {
+                std::string why; bool can = toolbox_.installable(d.id, &why);
+                ImGui::BeginDisabled(!can || toolbox_.installing());
+                if (ui::button("Install automatically", ImVec2(0, 0), ui::col::green, true, Icon::Plus)) toolbox_.startInstall(d.id);
+                ImGui::EndDisabled();
+                if (!can && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", why.c_str()); }
+            }
             if (ui::button("Path...", ImVec2(0, 0), ui::col::purple)) { toolPickId_ = d.id; browser_.open(d.relPaths.empty() ? "Pick the " + d.name + " program" : "Pick the " + d.name + " folder", d.relPaths.empty() ? FileBrowser::Mode::OpenFile : FileBrowser::Mode::OpenFolder, platform::homeDir(), 8); }
             ImGui::SameLine(); if (ui::button("Download", ImVec2(0, 0), ui::col::cyan)) platform::openInFileManager(d.url);
             ImGui::SameLine(); if (ui::button("Install help", ImVec2(0, 0), ui::col::pink)) {

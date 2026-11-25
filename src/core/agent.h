@@ -68,6 +68,7 @@ The app runs them and answers with the results; then you continue. Tools (all re
 - file_info    {path}                           size, image dimensions/format, PE header summary.
 - list_attachments {}                           files the user attached for you to use.
 - list_tools   {}                               which decompilers (Ghidra, radare2, ...) and compilers are installed on the user's PC.
+- install_tool {tool}                           download + set up a missing tool (ids from list_tools, e.g. ghidra, radare2, rizin, retdec, nasm, gcc, g++, objdump). The user is asked to approve; it can take minutes. Only call it when you really need the tool, and say why first.
 - decompile    {path, tool, function}           run an installed decompiler/disassembler on a file (tool optional = best available, function optional = name filter). The output is saved as _happy/decomp/<name>; the reply shows the start of it, read the rest with read_text on that path (offset).
 - compile_code {code, language, compiler, arch, flags, name}  compile C/C++/asm source YOU wrote (e.g. a cleaned-up decompilation) to check that it builds; returns compiler messages. language c|cpp|asm, arch auto|32|64. The binary lands in _happy/build/ and the user can save it to the Output folder.
 Paths are relative to the target folder with "/" separators, no "..". Prefer a few precise calls over reading everything.
@@ -203,7 +204,7 @@ inline std::string runTool(const ToolCall& call, IToolHost& host, size_t maxOut 
         }
         if (matched > shown) o << "... " << (matched - shown) << " more (raise \"max\" or narrow path/pattern)\n";
         if (matched == 0) o << "(nothing found)\n";
-    } else if (call.name == "list_tools" || call.name == "decompile" || call.name == "compile_code") {
+    } else if (call.name == "list_tools" || call.name == "install_tool" || call.name == "decompile" || call.name == "compile_code") {
         std::string r = host.external(call.name, a);
         if (r.size() > maxOut) r = cutUtf8(r, maxOut) + "\n...[truncated]";
         return r;

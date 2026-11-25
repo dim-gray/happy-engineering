@@ -333,12 +333,18 @@ std::string Workspace::external(const std::string& tool, const heng::JsonValue& 
             const heng::ToolDef* d = heng::findToolDef(s.id); if (!d) continue;
             o << (s.found ? "[installed] " : "[missing]   ") << s.id << " - " << d->name << " (" << heng::toolKindName(d->kind) << ")";
             if (s.found && !s.version.empty()) o << "  " << s.version;
+            if (!s.found) { std::string why; o << (tb_->installable(s.id, &why) ? "  (can be installed with install_tool)" : "  (not installable by Happy: see the Tools page)"); }
             o << "\n";
         }
         o << "Use decompile on a file; use compile_code to test-build source. Missing tools can be installed from the Tools page.";
         return o.str();
     }
     std::string err;
+    if (tool == "install_tool") {
+        std::string id = a.getString("tool"); if (id.empty()) return "ERROR: missing \"tool\" (an id from list_tools)";
+        InstallOutcome oc = tb_->install(id, false, nullptr);
+        return (oc.ok ? "OK: " : "NOT INSTALLED: ") + oc.message;
+    }
     if (tool == "decompile") {
         std::string real;
         if (!materialize(a.getString("path"), a.getString("attachment"), real, err)) return "ERROR: " + err;

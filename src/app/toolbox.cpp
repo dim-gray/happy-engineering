@@ -16,7 +16,10 @@ static std::string safeName(const std::string& n) {
 }
 
 Toolbox::~Toolbox() {
-    cancel_ = true;
+    cancel_ = true; installCancel_ = true;
+    { std::lock_guard<std::mutex> lk(mu_); if (pendingActive_) { pendingAnswer_ = 2; } }
+    cv_.notify_all();
+    if (installThread_.joinable()) installThread_.join();
     if (scanThread_.joinable()) scanThread_.join();
     if (jobThread_.joinable()) jobThread_.join();
 }
@@ -39,6 +42,22 @@ void Toolbox::rescan() {
     ToolboxEnv env; std::map<std::string, std::string> up;
     { std::lock_guard<std::mutex> lk(mu_); env = env_; up = userPaths_; }
     std::vector<ToolStatus> out;
+    // tools that Happy downloaded itself: <toolsDir>/<package>[/<subfolder>][/bin]
+    if (!env.toolsDir.empty()) {
+        env.roots.push_back(env.toolsDir);
+        std::error_code ec;
+        for (fs::directory_iterator a(fs::u8path(env.toolsDir), ec), end; !ec && a != end; a.increment(ec)) {
+            if (!a->is_directory(ec)) continue;
+            std::string da = a->path().string();
+            if (a->path().filename().string().compare(0, 1, "_") == 0) continue;
+            env.pathDirs.push_back(da); env.pathDirs.push_back(da + "/bin");
+            std::error_code e2;
+            for (fs::directory_iterator b(a->path(), e2), end2; !e2 && b != end2; b.increment(e2)) {
+                if (!b->is_directory(e2)) continue;
+                env.pathDirs.push_back(b->path().string()); env.pathDirs.push_back(b->path().string() + "/bin");
+            }
+        }
+    }
     for (const heng::ToolDef& d : heng::toolCatalog()) {
         ToolStatus s; s.id = d.id;
         std::map<std::string, std::string>::const_iterator it = up.find(d.id);
@@ -71,7 +90,7 @@ std::string Toolbox::pickDecompiler(const std::string& wanted, std::string& err)
     if (!wanted.empty()) {
         const heng::ToolDef* d = heng::findToolDef(wanted);
         if (!d || !d->decompiles()) { err = "unknown decompiler '" + wanted + "'"; return std::string(); }
-        if (!status(wanted).found) { err = d->name + " is not installed / not found (see the Tools page)"; return std::string(); }
+        if (!status(wanted).found) { err = d->name + " is not installed (use install_tool, or the Tools page)"; return std::string(); }
         return wanted;
     }
     static const char* order[] = {"ghidra", "retdec", "radare2", "rizin", "objdump"};
@@ -89,7 +108,7 @@ std::string Toolbox::pickCompiler(const std::string& wanted, const std::string& 
     if (!wanted.empty()) {
         const heng::ToolDef* d = heng::findToolDef(wanted);
         if (!d || !d->builds()) { err = "unknown compiler '" + wanted + "'"; return std::string(); }
-        if (!status(wanted).found) { err = d->name + " is not installed / not found (see the Tools page)"; return std::string(); }
+        if (!status(wanted).found) { err = d->name + " is not installed (use install_tool, or the Tools page)"; return std::string(); }
         if (!heng::compilerSupports(*d, lang)) { err = d->name + " cannot build ." + lang + " files"; return std::string(); }
         return wanted;
     }

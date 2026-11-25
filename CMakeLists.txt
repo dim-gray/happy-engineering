@@ -26,14 +26,14 @@ if(NOT stb_POPULATED)
   FetchContent_Populate(stb)
 endif()
 
-add_library(he_app STATIC src/app/archive.cpp src/app/workspace.cpp src/app/imgconv.cpp src/app/ai_session.cpp src/app/process.cpp src/app/toolbox.cpp)
+add_library(he_app STATIC src/app/archive.cpp src/app/workspace.cpp src/app/imgconv.cpp src/app/ai_session.cpp src/app/process.cpp src/app/toolbox.cpp src/app/installer.cpp)
 target_include_directories(he_app PUBLIC src PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(he_app PUBLIC miniz)
 
 # ---------------------------------------------------------------- tests
 if(HE_BUILD_TESTS)
   enable_testing()
-  foreach(t test_core test_edit test_agent test_workspace test_toolkit)
+  foreach(t test_core test_edit test_agent test_workspace test_toolkit test_install)
     add_executable(${t} test/${t}.cpp)
     target_include_directories(${t} PRIVATE src)
     target_link_libraries(${t} PRIVATE he_app)

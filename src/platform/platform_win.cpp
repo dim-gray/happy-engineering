@@ -10,6 +10,7 @@
 #include <shellapi.h>
 #include <wincrypt.h>
 #include "platform.h"
+#include "core/install.h"
 
 #ifndef WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2
 #define WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 0x00000800
@@ -146,6 +147,42 @@ HttpResult httpPost(const heng::ApiRequest& req, int timeoutSec, std::atomic<boo
     }
     res.sent = true;
     return res;
+}
+
+FetchResult httpFetch(const std::string& url, const std::vector<std::pair<std::string, std::string>>& headers, int timeoutSec,
+                      std::atomic<bool>* cancel, const std::function<bool(const char*, size_t)>& sink,
+                      const std::function<void(uint64_t, uint64_t)>& progress) {
+    FetchResult res;
+    std::string host, path; bool tls = true; int port = 0;
+    if (!heng::splitUrl(url, host, path, tls, port)) { res.error = "only https:// links are allowed"; return res; }
+    H session(WinHttpOpen(L"HappyEngineering/1.2", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
+    if (!session.h) { res.error = httpErr("WinHttpOpen failed", GetLastError()); return res; }
+    WinHttpSetTimeouts(session.h, 20000, 30000, 60000, timeoutSec * 1000);
+    DWORD protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2; WinHttpSetOption(session.h, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols));
+    H conn(WinHttpConnect(session.h, w(host).c_str(), port ? (INTERNET_PORT)port : INTERNET_DEFAULT_HTTPS_PORT, 0));
+    if (!conn.h) { res.error = httpErr("WinHttpConnect failed", GetLastError()); return res; }
+    H r(WinHttpOpenRequest(conn.h, L"GET", w(path).c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE));
+    if (!r.h) { res.error = httpErr("WinHttpOpenRequest failed", GetLastError()); return res; }
+    DWORD redir = WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP; WinHttpSetOption(r.h, WINHTTP_OPTION_REDIRECT_POLICY, &redir, sizeof redir);
+    std::wstring hdr; for (auto& kv : headers) hdr += w(kv.first) + L": " + w(kv.second) + L"\r\n";
+    if (!WinHttpSendRequest(r.h, hdr.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : hdr.c_str(), hdr.empty() ? 0 : (DWORD)hdr.size(), WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) { res.error = httpErr("WinHttpSendRequest failed", GetLastError()); return res; }
+    if (!WinHttpReceiveResponse(r.h, nullptr)) { res.error = httpErr("WinHttpReceiveResponse failed", GetLastError()); return res; }
+    DWORD code = 0, sz = sizeof(code);
+    WinHttpQueryHeaders(r.h, WINHTTP_QUERY_FLAG_NUMBER | WINHTTP_QUERY_STATUS_CODE, WINHTTP_HEADER_NAME_BY_INDEX, &code, &sz, WINHTTP_NO_HEADER_INDEX);
+    res.status = (int)code;
+    if (code < 200 || code >= 300) { res.error = "the server answered HTTP " + std::to_string(code); return res; }
+    uint64_t total = 0, done = 0; wchar_t lenBuf[32] = {0}; DWORD lsz = sizeof lenBuf;
+    if (WinHttpQueryHeaders(r.h, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, lenBuf, &lsz, WINHTTP_NO_HEADER_INDEX)) total = (uint64_t)_wtoi64(lenBuf);
+    std::vector<char> chunk(64 * 1024);
+    for (;;) {
+        if (cancel && cancel->load()) { res.error = "cancelled"; return res; }
+        DWORD got = 0;
+        if (!WinHttpReadData(r.h, chunk.data(), (DWORD)chunk.size(), &got)) { res.error = httpErr("download interrupted", GetLastError()); return res; }
+        if (!got) break;
+        if (!sink(chunk.data(), got)) { res.error = "aborted"; return res; }
+        done += got; if (progress) progress(done, total);
+    }
+    res.ok = true; return res;
 }
 
 std::vector<ProcessInfo> listProcesses() {

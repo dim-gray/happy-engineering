@@ -24,3 +24,7 @@ bool processAlive(uint32_t) { return true; }
 std::string memoryAccessHint() { return "Some processes need Happy Engineering to run as administrator."; }
 bool setSecureFileMode(const std::string&) { return true; }
 }}
+
+namespace he { namespace platform {
+FetchResult httpFetch(const std::string&, const std::vector<std::pair<std::string, std::string>>&, int, std::atomic<bool>*, const std::function<bool(const char*, size_t)>&, const std::function<void(uint64_t, uint64_t)>&) { FetchResult r; r.error = "offline"; return r; }
+}}

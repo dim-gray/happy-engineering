@@ -11,7 +11,7 @@
 
 namespace heng {
 
-enum class ToolKind { Decompiler, Disassembler, Compiler, Assembler };
+enum class ToolKind { Decompiler, Disassembler, Compiler, Assembler, Runtime };
 
 inline const char* toolKindName(ToolKind k) {
     switch (k) {
@@ -19,6 +19,7 @@ inline const char* toolKindName(ToolKind k) {
         case ToolKind::Disassembler: return "Disassembler";
         case ToolKind::Compiler: return "Compiler";
         case ToolKind::Assembler: return "Assembler";
+        case ToolKind::Runtime: return "Runtime";
     }
     return "Tool";
 }
@@ -86,6 +87,11 @@ inline const std::vector<ToolDef>& toolCatalog() {
           d.exeNames = {"objdump"}; d.versionArg = "--version";
           add(d); }
 
+        { ToolDef d; d.id = "java"; d.name = "Java JDK"; d.kind = ToolKind::Runtime;
+          d.desc = "Java runtime that Ghidra needs (JDK 17 or newer, 64-bit).";
+          d.url = "https://adoptium.net/temurin/releases/";
+          d.installWin = "Download the Temurin JDK 21 zip from adoptium.net and unzip it."; d.installLinux = "sudo apt install openjdk-21-jdk";
+          d.exeNames = {"java"}; d.relPaths = {"bin/java"}; d.dirPrefix = "jdk"; d.needs64 = true; add(d); }
         { ToolDef d; d.id = "gcc"; d.name = "gcc"; d.kind = ToolKind::Compiler;
           d.desc = "GNU C compiler."; d.url = "https://www.mingw-w64.org/downloads/";
           d.installWin = "Install MinGW-w64 (or MSYS2) and add its bin folder to PATH, or point Happy at gcc.exe.";

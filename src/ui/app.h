@@ -99,6 +99,7 @@ private:
     void tickMemory();
     // tools helpers
     void initToolbox();
+    void drawInstallApproval();
     void toolsListPanel(float w, float h);
     void toolsDecompilePanel(float w, float h);
     void toolsBuildPanel(float w, float h);
@@ -164,7 +165,7 @@ private:
     std::map<std::string, std::string> writeBuf_;
 
     // tools page
-    Toolbox toolbox_; bool toolboxReady_ = false;
+    Toolbox toolbox_; bool toolboxReady_ = false; std::unique_ptr<IDownloader> downloader_; bool wantApprovalPopup_ = false;
     std::string toolPickId_;
     std::string dcInput_, dcFunc_, dcTool_;            // decompile form (dcTool_ "" = auto)
     std::string dcShown_; std::string dcShownFile_;    // text currently displayed

@@ -2,6 +2,7 @@
 // Everything that differs between Windows and Linux lives behind this header.
 #pragma once
 #include <string>
+#include <functional>
 #include <vector>
 #include <memory>
 #include <atomic>
@@ -34,6 +35,13 @@ struct HttpResult {
 };
 // Blocking HTTP(S) POST. Call from a worker thread. `cancel` may be null.
 HttpResult httpPost(const heng::ApiRequest& req, int timeoutSec, std::atomic<bool>* cancel);
+
+struct FetchResult { bool ok = false; int status = 0; std::string error; };
+// Streaming HTTPS GET (follows redirects). The body goes to `sink` (return false to abort);
+// `progress(done,total)` is optional (total 0 = unknown). Call from a worker thread.
+FetchResult httpFetch(const std::string& url, const std::vector<std::pair<std::string, std::string>>& headers, int timeoutSec,
+                      std::atomic<bool>* cancel, const std::function<bool(const char*, size_t)>& sink,
+                      const std::function<void(uint64_t, uint64_t)>& progress);
 
 struct ProcessInfo { uint32_t pid = 0; std::string name; };
 std::vector<ProcessInfo> listProcesses();
