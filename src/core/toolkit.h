@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 
 namespace heng {
 
@@ -386,6 +387,43 @@ inline std::vector<std::string> extractCodeBlocks(const std::string& text, std::
         while (!body.empty() && (body.back() == '\n' || body.back() == '\r' || body.back() == ' ')) body.pop_back();
         if (tag.compare(0, 5, "happy") != 0) { out.push_back(body); if (langs) langs->push_back(tag); }
         pos = b + 3;
+    }
+    return out;
+}
+
+// ---- chat helpers -----------------------------------------------------------
+// "/decompile \"C:\\My Games\\a.exe\" main"  ->  cmd "decompile", args {"C:\\My Games\\a.exe", "main"}  (quotes group words)
+inline bool parseSlash(const std::string& text, std::string& cmd, std::vector<std::string>& args) {
+    size_t i = 0; while (i < text.size() && std::isspace((unsigned char)text[i])) ++i;
+    if (i >= text.size() || text[i] != '/') return false;
+    size_t e = i + 1; while (e < text.size() && !std::isspace((unsigned char)text[e])) ++e;
+    cmd = toolkit_detail::lower(text.substr(i + 1, e - i - 1));
+    if (cmd.empty() || cmd.find('/') != std::string::npos || cmd.find('.') != std::string::npos) return false;   // "/usr/bin/x" is a path, not a command
+    args = splitArgs(text.substr(e));
+    return true;
+}
+
+inline bool looksLikeAbsPath(const std::string& t) {
+    if (t.size() >= 3 && std::isalpha((unsigned char)t[0]) && t[1] == ':' && (t[2] == '\\' || t[2] == '/')) return true;      // C:\...
+    if (t.size() >= 3 && t[0] == '\\' && t[1] == '\\') return true;                                                         // \\server\share
+    if (t.size() >= 4 && t[0] == '/' && t.find('/', 1) != std::string::npos) return true;                                  // /home/x
+    return false;
+}
+
+// Absolute file paths the user typed in a message (quoted paths may contain spaces).
+inline std::vector<std::string> extractPathsFromText(const std::string& text) {
+    std::vector<std::string> out;
+    auto add = [&](std::string t) {
+        while (!t.empty() && std::strchr(".,;:!?)]}>", t.back())) t.pop_back();
+        if (looksLikeAbsPath(t) && std::find(out.begin(), out.end(), t) == out.end()) out.push_back(t);
+    };
+    size_t i = 0;
+    while (i < text.size()) {
+        char c = text[i];
+        if (c == '"' || c == '\'' || c == '`') { size_t e = text.find(c, i + 1); if (e == std::string::npos) break; add(text.substr(i + 1, e - i - 1)); i = e + 1; continue; }
+        if (std::isspace((unsigned char)c) || c == '(' || c == '[' || c == '<') { ++i; continue; }
+        size_t e = i; while (e < text.size() && !std::isspace((unsigned char)text[e])) ++e;
+        add(text.substr(i, e - i)); i = e;
     }
     return out;
 }

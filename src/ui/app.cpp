@@ -80,6 +80,7 @@ void App::frame(ImVec2 display) {
     heng::Plan np; if (ai_.takePlan(np)) applyIncomingPlan(np);
     if (cfgDirty_ && ImGui::GetTime() - cfgDirtyAt_ > 1.0) saveConfig();
     tickMemory();
+    tickChatJobs();
 
     float s = ImGui::GetFontSize() / 17.f;
     float sideW = 250 * s, pad = 16 * s;

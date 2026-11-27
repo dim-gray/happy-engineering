@@ -299,11 +299,30 @@ bool Workspace::virtualRead(const std::string& path, uint64_t offset, uint64_t l
     return true;
 }
 
+void Workspace::grantPaths(const std::string& userText) {
+    std::lock_guard<std::mutex> lk(mu_);
+    for (const std::string& p : heng::extractPathsFromText(userText)) {
+        std::error_code ec; if (!fs::is_regular_file(P(p), ec)) continue;
+        if (std::find(granted_.begin(), granted_.end(), p) == granted_.end()) granted_.push_back(p);
+    }
+}
+
 bool Workspace::materialize(const std::string& path, const std::string& attachment, std::string& real, std::string& err) {
     if (!attachment.empty()) {
         std::lock_guard<std::mutex> lk(mu_);
         for (const AttachmentFile& a : att_) if (a.name == attachment) { real = a.path; return true; }
         err = "no attachment named '" + attachment + "'"; return false;
+    }
+    if (heng::looksLikeAbsPath(path)) {
+        std::lock_guard<std::mutex> lk(mu_);
+        auto same = [](std::string a, std::string b) { for (char& c : a) if (c == '\\') c = '/'; for (char& c : b) if (c == '\\') c = '/';
+#ifdef _WIN32
+            for (char& c : a) c = (char)std::tolower((unsigned char)c); for (char& c : b) c = (char)std::tolower((unsigned char)c);
+#endif
+            return a == b; };
+        for (const std::string& g : granted_) if (same(g, path)) { real = g; return true; }
+        err = "that full path was not given by the user. Ask the user to type the full path of the file in the chat, or use a path inside the target / an attachment name.";
+        return false;
     }
     std::string norm;
     if (!heng::normalizeRelPath(path, norm)) { err = "bad or missing \"path\""; return false; }

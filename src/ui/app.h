@@ -99,6 +99,8 @@ private:
     void tickMemory();
     // tools helpers
     void initToolbox();
+    bool handleSlash(const std::string& text);
+    void tickChatJobs();
     void drawInstallApproval();
     void toolsListPanel(float w, float h);
     void toolsDecompilePanel(float w, float h);
@@ -171,7 +173,7 @@ private:
     std::string dcShown_; std::string dcShownFile_;    // text currently displayed
     std::string srcBuf_, srcName_ = "patched", srcFlags_ = "-O2 -Wall", srcLang_ = "c", cpTool_;
     int cpBits_ = 0; std::string buildNote_, lastLogSeen_;
-    bool buildWasFix_ = false; int toolsTab_ = 0; std::string dcToken_;
+    bool buildWasFix_ = false; int toolsTab_ = 0; int chatJob_ = 0; /*0 none,1 decompile,2 build,3 install*/ std::string dcToken_;
 
     // output page
     std::string selOutput_; std::vector<std::string> outputsCache_; double outputsAt_ = -100;

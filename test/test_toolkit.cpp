@@ -73,6 +73,15 @@ int main() {
     auto blocks = extractCodeBlocks("hi\n```c\nint main(){}\n```\ntext\n```happy-plan\n{}\n```\n```cpp\nint x;\n```", &langs);
     CHECK(blocks.size() == 2 && blocks[0] == "int main(){}" && langs[1] == "cpp");
 
+    // chat helpers
+    { std::string cmd; std::vector<std::string> ar;
+      CHECK(parseSlash("/decompile \"C:\\My Games\\a.exe\" main", cmd, ar) && cmd == "decompile" && ar.size() == 2 && ar[0] == "C:\\My Games\\a.exe" && ar[1] == "main");
+      CHECK(parseSlash("  /TOOLS", cmd, ar) && cmd == "tools" && ar.empty());
+      CHECK(!parseSlash("hello /tools", cmd, ar) && !parseSlash("/usr/bin/gcc", cmd, ar));
+      auto p = extractPathsFromText("please decompile C:\\Games\\x\\game.exe, and \"D:\\My Stuff\\b.dll\" or /home/me/a.out.");
+      CHECK(p.size() == 3 && p[0] == "C:\\Games\\x\\game.exe" && p[1] == "D:\\My Stuff\\b.dll" && p[2] == "/home/me/a.out");
+      CHECK(extractPathsFromText("use /tools and 3/4 of the data and http://x.y/z").size() == 0); }
+
     // config round trip
     AppConfig cfg; cfg.toolPaths["ghidra"] = "/opt/ghidra"; cfg.toolPaths["g++"] = "C:\\mingw\\bin\\g++.exe";
     ApiProfile pr; cfg.profiles.push_back(pr);

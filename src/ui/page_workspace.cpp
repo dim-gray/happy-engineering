@@ -76,7 +76,6 @@ bool App::aiReady(std::string& why) const {
     if (!ap) { why = "Create an API profile in Settings first."; return false; }
     if (ap->provider != heng::Provider::Custom && ap->apiKey.empty()) { why = "Add your API key in Settings > API profiles."; return false; }
     if (ap->model.empty()) { why = "Choose a model in Settings."; return false; }
-    if (!target_.isSet()) { why = "Pick a target first (file, folder, HTML or running process)."; return false; }
     return true;
 }
 
@@ -135,6 +134,7 @@ std::string App::buildContext(std::vector<heng::ImagePart>& images) {
 }
 
 void App::sendToAi(const std::string& text) {
+    ws_.grantPaths(text);
     std::string why; if (!aiReady(why)) { ui::toast(Toast::Warn, why); return; }
     heng::ApiProfile* ap = cfg_.active();
     SessionSettings ss; ss.api = ap->toConfig(); ss.maxTokens = ap->maxTokens; ss.maxSteps = cfg_.agentMaxSteps; ss.personality = cfg_.systemPrompt;
@@ -377,12 +377,13 @@ void App::drawAskPanel(float h) {
     ImGui::PushFont(ui::fonts.body);
     if (ImGui::InputTextMultiline("##prompt", &prompt_, ImVec2(-FLT_MIN, boxH), ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_EnterReturnsTrue)) submit = true;
     ImGui::PopFont();
-    if (prompt_.empty() && !ImGui::IsItemActive()) { ImVec2 pmin = ImGui::GetItemRectMin(); ImGui::GetWindowDrawList()->AddText(ImVec2(pmin.x + 12 * s, pmin.y + 8 * s), ui::col::withAlpha(ui::col::muted, 0.8f), "What should I do?  e.g. \"make the sword cost 50 gold\"   (Enter = send)"); }
+    if (prompt_.empty() && !ImGui::IsItemActive()) { ImVec2 pmin = ImGui::GetItemRectMin(); ImGui::GetWindowDrawList()->AddText(ImVec2(pmin.x + 12 * s, pmin.y + 8 * s), ui::col::withAlpha(ui::col::muted, 0.8f), "Ask anything, e.g. \"make the sword cost 50 gold\" or \"decompile C:\\game\\game.exe\".  Commands: /tools  /install ghidra  /decompile <file>  /build   (Enter = send)"); }
     std::string why; bool ready = aiReady(why);
     if (ai_.busy()) { if (ui::button("Stop", ImVec2(130 * s, 0), ui::col::red, true, Icon::Stop)) ai_.cancel(); }
     else {
-        ImGui::BeginDisabled(!ready || prompt_.empty());
-        if (ui::button("Send to Happy", ImVec2(170 * s, 0), ui::col::pink, true, Icon::Send) || (submit && ready && !prompt_.empty())) { std::string t = prompt_; prompt_.clear(); sendToAi(t); }
+        bool isCmd = !prompt_.empty() && prompt_[0] == '/';
+        ImGui::BeginDisabled((!ready && !isCmd) || prompt_.empty());
+        if (ui::button("Send to Happy", ImVec2(170 * s, 0), ui::col::pink, true, Icon::Send) || (submit && (ready || isCmd) && !prompt_.empty())) { std::string t = prompt_; prompt_.clear(); if (!handleSlash(t)) sendToAi(t); }
         ImGui::EndDisabled();
         if (!ready && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s", why.c_str());
     }

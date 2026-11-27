@@ -119,6 +119,89 @@ void App::drawInstallApproval() {
     }
 }
 
+// ------------------------------------------------------------------ chat commands
+// Typed in the chat box; they run locally (no API key needed) and print into the conversation.
+bool App::handleSlash(const std::string& text) {
+    std::string cmd; std::vector<std::string> args;
+    if (!heng::parseSlash(text, cmd, args)) return false;
+    ai_.addLog(LogKind::User, "You", text);
+    feedStick_ = true;
+    auto info = [&](const std::string& m) { ai_.addLog(LogKind::Info, "Tools", m); };
+    auto bad = [&](const std::string& m) { ai_.addLog(LogKind::Error, "Tools", m); };
+    if (cmd == "help" || cmd == "?") {
+        info("Chat commands (they run on your PC, no API key needed):\n/tools - list decompilers and compilers and whether they are installed\n/install <tool> - download and set up a tool, e.g. /install ghidra\n/decompile <file> [function] - decompile a file (full path, or a path inside your target)\n/build [name] - compile the newest code block from the AI's last reply\n\nYou can also just ask in plain words, e.g. \"decompile C:\\game\\game.exe and find the health check\" - the AI will call these tools itself.");
+        return true;
+    }
+    if (cmd == "tools") {
+        std::string o; for (const ToolStatus& st : toolbox_.statuses()) { const heng::ToolDef* d = heng::findToolDef(st.id); if (!d) continue;
+            o += (st.found ? "[installed] " : "[missing]   ") + st.id + " - " + d->name + (st.found ? "  " + st.path : std::string()) + "\n"; }
+        info(o.empty() ? "Still scanning for tools - try again in a moment." : o + "Install one with /install <id>.");
+        return true;
+    }
+    if (cmd == "install") {
+        if (args.empty()) { bad("Usage: /install <tool>   (ids: see /tools)"); return true; }
+        std::string why; if (!toolbox_.installable(args[0], &why)) { bad(why); return true; }
+        if (toolbox_.installing()) { bad("Another install is already running."); return true; }
+        toolbox_.startInstall(args[0]); chatJob_ = 3; info("Installing " + args[0] + " ... progress is shown on the Tools page.");
+        return true;
+    }
+    if (cmd == "decompile" || cmd == "disasm") {
+        if (args.empty()) { bad("Usage: /decompile <file> [function]"); return true; }
+        if (toolbox_.busy()) { bad("A tool job is already running."); return true; }
+        std::string file = args[0];
+        if (!heng::looksLikeAbsPath(file)) {
+            if (ws_.root().empty()) { bad("Give the full path of the file, e.g. /decompile C:\\game\\game.exe"); return true; }
+            file = ws_.root() + "/" + file;
+        }
+        std::string why; std::string pick = toolbox_.pickDecompiler("", why);
+        if (pick.empty()) { bad(why + "  -  try /install radare2 or /install ghidra"); return true; }
+        dcInput_ = file;
+        toolbox_.startDecompile("", file, args.size() > 1 ? args[1] : std::string()); chatJob_ = 1; dcToken_ = "running";
+        info("Decompiling " + heng::baseNameOf(file) + " with " + heng::findToolDef(pick)->name + " ...");
+        ws_.grantPaths("\"" + file + "\"");
+        return true;
+    }
+    if (cmd == "build" || cmd == "compile") {
+        std::string lang; std::string code = latestAiCode(&lang);
+        if (code.empty()) { bad("No code block in the AI's replies yet. Ask the AI for code, or use the Recompile tab."); return true; }
+        std::string l = lang; for (char& c : l) c = (char)std::tolower((unsigned char)c);
+        srcBuf_ = code; srcLang_ = (l == "cpp" || l == "c++" || l == "cc") ? "cpp" : (l == "asm" || l == "nasm") ? "asm" : "c";
+        std::string nm = args.empty() ? "happy_build" : args[0];
+        int bits = 0; for (const std::string& a : args) { if (a == "32") bits = 32; if (a == "64") bits = 64; }
+        std::string dir = toolbox_.env().workDir + "/src"; std::error_code ec; fs::create_directories(P(dir), ec);
+        std::string clean; for (char c : nm) clean.push_back((std::isalnum((unsigned char)c) || c == '_' || c == '-') ? c : '_');
+        std::string src = dir + "/" + clean + "." + srcLang_;
+        std::vector<uint8_t> b(code.begin(), code.end()); std::string e;
+        if (!writeWholeFile(src, b, e)) { bad(e); return true; }
+        srcName_ = clean;
+        if (toolbox_.busy()) { bad("A tool job is already running."); return true; }
+        std::string why; if (toolbox_.pickCompiler("", srcLang_, bits, why).empty()) { bad(why + "  -  try /install gcc"); return true; }
+        toolbox_.startCompile("", std::vector<std::string>(1, src), clean, srcFlags_, bits); chatJob_ = 2;
+        info("Building the newest code block ...");
+        return true;
+    }
+    bad("Unknown command /" + cmd + ". Type /help.");
+    return true;
+}
+
+// Posts the result of a chat-started tool job into the conversation.
+void App::tickChatJobs() {
+    if (!chatJob_) return;
+    if (chatJob_ == 3) {
+        if (toolbox_.installing()) return;
+        InstallOutcome o = toolbox_.lastInstall(); if (o.message.empty()) return;
+        ai_.addLog(o.ok ? LogKind::Info : LogKind::Error, "Tools", o.message); chatJob_ = 0; feedStick_ = true; return;
+    }
+    if (toolbox_.busy()) return;
+    JobResult jr = toolbox_.lastResult(); if (!jr.done) return;
+    if (!jr.ok) ai_.addLog(LogKind::Error, "Tools", (chatJob_ == 1 ? "Decompile failed: " : "Build failed: ") + jr.error + (jr.text.empty() ? std::string() : "\n\n```\n" + tailOf(jr.text, 4000) + "\n```"));
+    else if (chatJob_ == 1) {
+        std::string t = headOf(jr.text, 6000);
+        ai_.addLog(LogKind::Info, "Tools", "Decompiled with " + jr.tool + ". Full output: _happy/decomp/" + heng::baseNameOf(jr.outFile) + " (ask the AI to read it, or use Copy / the Tools page).\n\n```c\n" + t + "\n```");
+    } else ai_.addLog(LogKind::Info, "Tools", "Built with " + jr.tool + " -> " + jr.outFile + "\nSave it from the Recompile tab (Save build).\n" + (jr.text.empty() ? std::string() : "\n```\n" + tailOf(jr.text, 3000) + "\n```"));
+    chatJob_ = 0; feedStick_ = true;
+}
+
 std::string App::buildsBase() const {
     return cfg_.outputDir.empty() ? platform::documentsDir() + "/HappyEngineering/Builds" : cfg_.outputDir + "/Builds";
 }

@@ -45,6 +45,8 @@ public:
     std::vector<std::string> attachmentNames() override;
     std::string external(const std::string& tool, const heng::JsonValue& args) override;
     void setToolbox(Toolbox* t) { tb_ = t; }
+    // Files whose full path the user typed in the chat: the AI may decompile exactly these (not read them).
+    void grantPaths(const std::string& userText);
 
     // Plain recursive file list for the initial context (no archive expansion).
     std::vector<heng::FileEntry> scanFolder(size_t maxFiles, bool& truncated);
@@ -62,6 +64,7 @@ private:
     bool virtualRead(const std::string& path, uint64_t offset, uint64_t len, std::vector<uint8_t>& out, uint64_t& total, std::string& err);
     bool materialize(const std::string& path, const std::string& attachment, std::string& real, std::string& err);
     Toolbox* tb_ = nullptr;
+    std::vector<std::string> granted_;
     std::mutex mu_;
     std::string root_, focus_;
     std::vector<AttachmentFile> att_;
