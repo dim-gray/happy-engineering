@@ -86,7 +86,7 @@ Action types ("note" = why, optional):
 3. {"type":"replace_file","file":"rel/path","with_attachment":"name.ext"}   raw swap, same extension required (audio, models, anything).
 4. {"type":"patch_bytes","file":"rel/path","offset":"0x1A2B","expect":"74 05","write":"EB 05"}   always include "expect".
 5. {"type":"mem_write","label":"gold","value":"99999"}   ONLY labels from the user's memory watch list.
-Rules: only files you have seen via tools or the file list; "find" must match existing text exactly - verify with read_text/search_text first. If data is missing, say what is missing instead of guessing. Max 40 actions, one happy-plan block, and never a happy-tool block in the same reply as a happy-plan.)HEPROTO";
+Rules: only files you have seen via tools or the file list; "find" must be copied character for character from what read_text/search_text showed you - never retype or guess it. Prefer a short, unique, single-line snippet (e.g. just the changed tag or value) over a big multi-line block; replace only that part. If a plan action fails with "text not found", re-read the file and fix it. If data is missing, say what is missing instead of guessing. Max 40 actions, one happy-plan block, and never a happy-tool block in the same reply as a happy-plan.)HEPROTO";
 }
 
 inline std::string effectivePersonality(const std::string& custom) {

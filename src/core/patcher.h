@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <algorithm>
 #include "actions.h"
 #include "attachments.h"
 #include "textutil.h"
@@ -30,7 +31,7 @@ inline bool encodeForEncoding(const std::string& utf8, const std::string& enc,
         return true;
     }
     if (enc == "ascii" && !isAsciiOnly(utf8)) {
-        err = "textul contine caractere non-ASCII, dar encoding=ascii";
+        err = "the text contains non-ASCII characters but encoding=ascii";
         return false;
     }
     out.assign(utf8.begin(), utf8.end());
@@ -61,6 +62,54 @@ inline std::vector<size_t> findAllBytes(const std::vector<uint8_t>& data,
     return pos;
 }
 
+// ---- tolerant matching for text files -----------------------------------------
+inline std::string toCrlf(const std::string& s) { std::string o; for (size_t i = 0; i < s.size(); ++i) { if (s[i] == '\n' && (i == 0 || s[i - 1] != '\r')) o += '\r'; o += s[i]; } return o; }
+inline std::string toLf(const std::string& s) { std::string o; for (size_t i = 0; i < s.size(); ++i) { if (s[i] == '\r' && i + 1 < s.size() && s[i + 1] == '\n') continue; o += s[i]; } return o; }
+inline bool isWs(uint8_t c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
+inline std::string trimWs(const std::string& s) { size_t a = 0, b = s.size(); while (a < b && isWs((uint8_t)s[a])) ++a; while (b > a && isWs((uint8_t)s[b - 1])) --b; return s.substr(a, b - a); }
+inline bool hasCrlf(const std::vector<uint8_t>& d) { for (size_t i = 0; i + 1 < d.size() && i < 4000000; ++i) if (d[i] == '\r' && d[i + 1] == '\n') return true; return false; }
+
+// Finds `needle` allowing any run of whitespace wherever the needle has whitespace. Returns (start,len) spans.
+inline std::vector<std::pair<size_t, size_t> > findLoose(const std::vector<uint8_t>& data, const std::string& needle, size_t maxHits = 5000) {
+    std::vector<std::string> tok; std::string cur;
+    for (char c : needle) { if (isWs((uint8_t)c)) { if (!cur.empty()) tok.push_back(cur); cur.clear(); } else cur += c; }
+    if (!cur.empty()) tok.push_back(cur);
+    std::vector<std::pair<size_t, size_t> > out;
+    if (tok.size() < 2) return out;
+    std::vector<uint8_t> t0(tok[0].begin(), tok[0].end());
+    size_t i = 0;
+    while (i < data.size() && out.size() < maxHits) {
+        std::vector<uint8_t>::const_iterator f0 = std::search(data.begin() + i, data.end(), t0.begin(), t0.end());
+        if (f0 == data.end()) break;
+        size_t start = (size_t)(f0 - data.begin()), pos = start + t0.size(); bool ok = true;
+        for (size_t k = 1; k < tok.size() && ok; ++k) {
+            size_t ws = pos; while (pos < data.size() && isWs(data[pos])) ++pos;
+            if (pos == ws || pos + tok[k].size() > data.size() || std::memcmp(&data[pos], tok[k].data(), tok[k].size()) != 0) ok = false;
+            else pos += tok[k].size();
+        }
+        if (ok) { out.push_back(std::make_pair(start, pos - start)); i = pos; } else i = start + 1;
+    }
+    return out;
+}
+
+// Why a find text was not found: points at the nearest line that does exist.
+inline std::string explainMissing(const std::vector<uint8_t>& data, const std::string& find) {
+    std::string best; size_t cur = 0;
+    for (size_t i = 0; i <= find.size(); ++i) {
+        if (i == find.size() || find[i] == '\n') { std::string line = trimWs(find.substr(cur, i - cur)); if (line.size() > best.size()) best = line; cur = i + 1; }
+    }
+    if (best.size() >= 6) {
+        std::vector<uint8_t> b(best.begin(), best.end());
+        std::vector<size_t> at = findAllBytes(data, b, 1, 1);
+        if (!at.empty()) {
+            size_t line = 1; for (size_t k = 0; k < at[0]; ++k) if (data[k] == '\n') ++line;
+            return "text was not found in the file. The line \"" + (best.size() > 60 ? best.substr(0, 60) + "..." : best) + "\" does exist (line " + std::to_string(line) +
+                   ") but the text around it is different - copy the exact text from the file (read_text) or use a shorter single-line snippet.";
+        }
+    }
+    return "text was not found in the file - no line of it exists there. The file may have changed, or the text was guessed; read the file again and copy the exact text.";
+}
+
 // Applies a replace_text action to `data` (modified in place).
 // Text files may change length; in binary files the replacement may not be
 // longer than the original (a shorter one is padded with 0x00), because a
@@ -72,14 +121,37 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
     std::string err;
     if (!encodeForEncoding(a.find, a.encoding, f, err)) { r.message = "'find': " + err; return r; }
     if (!encodeForEncoding(a.replace, a.encoding, rep, err)) { r.message = "'replace': " + err; return r; }
-    if (f.empty()) { r.message = "textul de cautat este gol"; return r; }
+    if (f.empty()) { r.message = "the text to find is empty"; return r; }
 
     std::vector<size_t> hits = findAllBytes(data, f, a.encoding == "utf16le" ? 2 : 1);
-    if (hits.empty()) { r.message = "text was not found in the file"; return r; }
-    size_t total = hits.size();
-    if (!a.all) hits.resize(1);
-
+    std::vector<size_t> lens(hits.size(), f.size());
+    std::string tolerant;      // note when a forgiving match was needed
     bool resizable = isTextExtension(fileName) || looksLikeText(data.data(), data.size());
+    if (hits.empty() && resizable && a.encoding != "utf16le") {
+        // 1) the AI usually writes "\n" while Windows files use "\r\n" (or the reverse)
+        bool crlf = hasCrlf(data);
+        std::string find2 = crlf ? toCrlf(a.find) : toLf(a.find), rep2 = crlf ? toCrlf(a.replace) : toLf(a.replace);
+        if (find2 != a.find) {
+            std::vector<uint8_t> f2(find2.begin(), find2.end());
+            hits = findAllBytes(data, f2);
+            if (!hits.empty()) { f.swap(f2); rep.assign(rep2.begin(), rep2.end()); lens.assign(hits.size(), f.size()); tolerant = " (matched after fixing the line endings)"; }
+        }
+        // 2) whitespace / indentation differences
+        if (hits.empty()) {
+            std::vector<std::pair<size_t, size_t> > sp = findLoose(data, a.find);
+            if (!sp.empty()) {
+                std::string r2 = trimWs(crlf ? toCrlf(a.replace) : toLf(a.replace));
+                rep.assign(r2.begin(), r2.end());
+                hits.clear(); lens.clear();
+                for (size_t k = 0; k < sp.size(); ++k) { hits.push_back(sp[k].first); lens.push_back(sp[k].second); }
+                tolerant = " (matched ignoring spaces/indentation differences)";
+            }
+        }
+    }
+    if (hits.empty()) { r.message = explainMissing(data, a.find); return r; }
+    size_t total = hits.size();
+    if (!a.all) { hits.resize(1); lens.resize(1); }
+
     std::string note;
     if (resizable) {
         std::vector<uint8_t> out;
@@ -88,7 +160,7 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
         for (size_t h = 0; h < hits.size(); ++h) {
             out.insert(out.end(), data.begin() + cursor, data.begin() + hits[h]);
             out.insert(out.end(), rep.begin(), rep.end());
-            cursor = hits[h] + f.size();
+            cursor = hits[h] + lens[h];
         }
         out.insert(out.end(), data.begin() + cursor, data.end());
         data.swap(out);
@@ -98,16 +170,16 @@ inline PatchOutcome applyReplaceText(std::vector<uint8_t>& data, const PlanActio
                         std::to_string(f.size()) + "); the length cannot change in a binary file";
             return r;
         }
-        if (rep.size() < f.size()) note = " (completat cu 0x00 pana la lungimea originala)";
+        if (rep.size() < f.size()) note = " (padded with 0x00 to the original length)";
         rep.resize(f.size(), 0);
         for (size_t h = 0; h < hits.size(); ++h)
             std::memcpy(&data[hits[h]], rep.data(), rep.size());
     }
     r.ok = true;
     r.count = hits.size();
-    r.message = std::to_string(hits.size()) + " aparitii inlocuite";
-    if (!a.all && total > 1) r.message = "prima aparitie inlocuita (din " + std::to_string(total) + ")";
-    r.message += note;
+    r.message = std::to_string(hits.size()) + (hits.size() == 1 ? " occurrence replaced" : " occurrences replaced");
+    if (!a.all && total > 1) r.message = "first occurrence replaced (of " + std::to_string(total) + ")";
+    r.message += note + tolerant;
     return r;
 }
 

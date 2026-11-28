@@ -168,6 +168,23 @@ static void test_patcher() {
     PlanAction m; m.find = "zzz"; m.replace = "y";
     CHECK(!applyReplaceText(t3, m, "t.txt").ok);
 
+    // CRLF file, the AI wrote LF
+    { std::vector<uint8_t> h = bytesOf("<div>\r\n  <p>Buy now</p>\r\n</div>\r\n");
+      PlanAction c; c.find = "<div>\n  <p>Buy now</p>\n</div>"; c.replace = "<div>\n  <p>Get it</p>\n</div>";
+      PatchOutcome co = applyReplaceText(h, c, "index.html");
+      CHECK(co.ok && std::string(h.begin(), h.end()) == "<div>\r\n  <p>Get it</p>\r\n</div>\r\n" && co.message.find("line endings") != std::string::npos); }
+    // LF file, the AI wrote CRLF
+    { std::vector<uint8_t> h = bytesOf("a\nb\n"); PlanAction c; c.find = "a\r\nb"; c.replace = "x\r\ny"; CHECK(applyReplaceText(h, c, "t.txt").ok && std::string(h.begin(), h.end()) == "x\ny\n"); }
+    // indentation differs
+    { std::vector<uint8_t> h = bytesOf("<ul>\n\t<li>One</li>\n\t<li>Two</li>\n</ul>");
+      PlanAction c; c.find = "<li>One</li>\n    <li>Two</li>"; c.replace = "<li>1</li><li>2</li>";
+      PatchOutcome co = applyReplaceText(h, c, "p.html");
+      CHECK(co.ok && std::string(h.begin(), h.end()) == "<ul>\n\t<li>1</li><li>2</li>\n</ul>" && co.message.find("spaces") != std::string::npos); }
+    // not found: tells where the closest line is
+    { std::vector<uint8_t> h = bytesOf("one\n<title>Shop</title>\nthree\n"); PlanAction c; c.find = "<head>\n<title>Shop</title>\n</head>"; c.replace = "x";
+      PatchOutcome co = applyReplaceText(h, c, "i.html"); CHECK(!co.ok && co.message.find("line 2") != std::string::npos && std::string(h.begin(), h.end()) == "one\n<title>Shop</title>\nthree\n"); }
+    { std::vector<uint8_t> h = bytesOf("abc"); PlanAction c; c.find = "completely different text here"; CHECK(!applyReplaceText(h, c, "i.html").ok); }
+
     // binary file: shorter is padded, longer is refused
     std::vector<uint8_t> bin = {0x00, 0x01, 'H', 'e', 'l', 'l', 'o', 0x00, 0x02, 0x00};
     PlanAction s; s.find = "Hello"; s.replace = "Hi";

@@ -174,6 +174,22 @@ void App::pagePlan(float w, float h) {
         if (cfg_.confirmBeforeApply || anyMem) { confirmMem_ = anyMem; ImGui::OpenPopup("##confirmApply"); } else runApply();
     }
     ImGui::EndDisabled();
+    if (hasReport_ && report_.failCount > 0 && !ai_.busy()) {
+        ImGui::SameLine();
+        if (ui::button("Ask AI to fix failed edits", ImVec2(0, 0), ui::col::orange, true, Icon::Send)) {
+            std::string why; if (!aiReady(why)) ui::toast(Toast::Warn, why);
+            else {
+                std::string msg = "Some plan actions failed. Re-read the affected file(s) with read_text / search_text, copy the EXACT text from the file (short, preferably single-line snippets, keep the file's own spacing), and send a corrected happy-plan containing only the actions that need fixing.\n\nFailures:\n";
+                for (size_t i = 0; i < plan_.actions.size() && i < report_.results.size(); ++i) {
+                    const auto& r = report_.results[i]; if (r.skipped || r.ok) continue;
+                    const heng::PlanAction& a = plan_.actions[i];
+                    std::string f = a.find.size() > 300 ? a.find.substr(0, 300) + "..." : a.find;
+                    msg += "- action " + std::to_string(i + 1) + " (" + heng::actionTypeLabel(a.type) + ", " + a.file + "): " + r.message + (f.empty() ? std::string() : "\n  find was: " + f) + "\n";
+                }
+                page_ = Page::Workspace; sendToAi(msg);
+            }
+        }
+    }
     ImGui::SameLine();
     bool canOpen = lastSave_.ok;
     ImGui::BeginDisabled(!canOpen);
