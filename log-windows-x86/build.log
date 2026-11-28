@@ -1,0 +1,427 @@
+Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Hit:2 http://azure.archive.ubuntu.com/ubuntu jammy InRelease
+Get:6 https://packages.microsoft.com/ubuntu/22.04/prod jammy InRelease [3632 B]
+Get:3 http://azure.archive.ubuntu.com/ubuntu jammy-updates InRelease [128 kB]
+Get:4 http://azure.archive.ubuntu.com/ubuntu jammy-backports InRelease [127 kB]
+Get:5 http://azure.archive.ubuntu.com/ubuntu jammy-security InRelease [129 kB]
+Get:7 https://packages.microsoft.com/ubuntu/22.04/prod jammy/main all Packages [1319 B]
+Get:8 https://packages.microsoft.com/ubuntu/22.04/prod jammy/main armhf Packages [23.6 kB]
+Get:9 https://packages.microsoft.com/ubuntu/22.04/prod jammy/main arm64 Packages [889 kB]
+Get:10 https://packages.microsoft.com/ubuntu/22.04/prod jammy/main amd64 Packages [1178 kB]
+Get:11 http://azure.archive.ubuntu.com/ubuntu jammy-updates/main amd64 Packages [4025 kB]
+Get:12 http://azure.archive.ubuntu.com/ubuntu jammy-updates/main Translation-en [590 kB]
+Get:13 http://azure.archive.ubuntu.com/ubuntu jammy-updates/restricted amd64 Packages [6909 kB]
+Get:14 http://azure.archive.ubuntu.com/ubuntu jammy-updates/restricted Translation-en [1329 kB]
+Get:15 http://azure.archive.ubuntu.com/ubuntu jammy-updates/universe amd64 Packages [1292 kB]
+Get:16 http://azure.archive.ubuntu.com/ubuntu jammy-updates/universe Translation-en [327 kB]
+Get:17 http://azure.archive.ubuntu.com/ubuntu jammy-security/main amd64 Packages [3754 kB]
+Get:18 http://azure.archive.ubuntu.com/ubuntu jammy-security/main Translation-en [523 kB]
+Get:19 http://azure.archive.ubuntu.com/ubuntu jammy-security/restricted amd64 Packages [6659 kB]
+Get:20 http://azure.archive.ubuntu.com/ubuntu jammy-security/restricted Translation-en [1283 kB]
+Get:21 http://azure.archive.ubuntu.com/ubuntu jammy-security/universe amd64 Packages [1060 kB]
+Get:22 http://azure.archive.ubuntu.com/ubuntu jammy-security/universe Translation-en [239 kB]
+Fetched 30.5 MB in 4s (7797 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+zip is already the newest version (3.0-12build2).
+The following additional packages will be installed:
+  binutils-mingw-w64-i686 binutils-mingw-w64-x86-64 cmake-data dh-elpa-helper
+  g++-mingw-w64 g++-mingw-w64-i686 g++-mingw-w64-i686-posix
+  g++-mingw-w64-i686-win32 g++-mingw-w64-x86-64 g++-mingw-w64-x86-64-posix
+  g++-mingw-w64-x86-64-win32 gcc-mingw-w64 gcc-mingw-w64-base
+  gcc-mingw-w64-i686 gcc-mingw-w64-i686-posix gcc-mingw-w64-i686-posix-runtime
+  gcc-mingw-w64-i686-win32 gcc-mingw-w64-i686-win32-runtime
+  gcc-mingw-w64-x86-64 gcc-mingw-w64-x86-64-posix
+  gcc-mingw-w64-x86-64-posix-runtime gcc-mingw-w64-x86-64-win32
+  gcc-mingw-w64-x86-64-win32-runtime libjsoncpp25 librhash0 mingw-w64-common
+  mingw-w64-i686-dev mingw-w64-x86-64-dev
+Suggested packages:
+  cmake-doc ninja-build cmake-format gcc-10-locales wine wine64
+The following NEW packages will be installed:
+  binutils-mingw-w64-i686 binutils-mingw-w64-x86-64 cmake cmake-data
+  dh-elpa-helper g++-mingw-w64 g++-mingw-w64-i686 g++-mingw-w64-i686-posix
+  g++-mingw-w64-i686-win32 g++-mingw-w64-x86-64 g++-mingw-w64-x86-64-posix
+  g++-mingw-w64-x86-64-win32 gcc-mingw-w64 gcc-mingw-w64-base
+  gcc-mingw-w64-i686 gcc-mingw-w64-i686-posix gcc-mingw-w64-i686-posix-runtime
+  gcc-mingw-w64-i686-win32 gcc-mingw-w64-i686-win32-runtime
+  gcc-mingw-w64-x86-64 gcc-mingw-w64-x86-64-posix
+  gcc-mingw-w64-x86-64-posix-runtime gcc-mingw-w64-x86-64-win32
+  gcc-mingw-w64-x86-64-win32-runtime libjsoncpp25 librhash0 mingw-w64
+  mingw-w64-common mingw-w64-i686-dev mingw-w64-x86-64-dev
+0 upgraded, 30 newly installed, 0 to remove and 44 not upgraded.
+Need to get 236 MB of archives.
+After this operation, 1167 MB of additional disk space will be used.
+Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Get:2 http://azure.archive.ubuntu.com/ubuntu jammy/main amd64 libjsoncpp25 amd64 1.9.5-3 [80.0 kB]
+Get:3 http://azure.archive.ubuntu.com/ubuntu jammy/main amd64 librhash0 amd64 1.4.2-1ubuntu1 [125 kB]
+Get:4 http://azure.archive.ubuntu.com/ubuntu jammy/main amd64 dh-elpa-helper all 2.0.9ubuntu1 [7610 B]
+Get:5 http://azure.archive.ubuntu.com/ubuntu jammy-updates/main amd64 cmake-data all 3.22.1-1ubuntu1.22.04.2 [1913 kB]
+Get:6 http://azure.archive.ubuntu.com/ubuntu jammy-updates/main amd64 cmake amd64 3.22.1-1ubuntu1.22.04.2 [5010 kB]
+Get:7 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 binutils-mingw-w64-i686 amd64 2.38-3ubuntu1+9build1 [2882 kB]
+Get:8 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 mingw-w64-common all 8.0.0-1 [4911 kB]
+Get:9 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 mingw-w64-i686-dev all 8.0.0-1 [2837 kB]
+Get:10 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-base amd64 10.3.0-14ubuntu1+24.3 [187 kB]
+Get:11 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-i686-posix-runtime amd64 10.3.0-14ubuntu1+24.3 [11.9 MB]
+Get:12 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-i686-posix amd64 10.3.0-14ubuntu1+24.3 [28.5 MB]
+Get:13 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-i686-posix amd64 10.3.0-14ubuntu1+24.3 [11.4 MB]
+Get:14 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-i686-win32-runtime amd64 10.3.0-14ubuntu1+24.3 [11.9 MB]
+Get:15 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-i686-win32 amd64 10.3.0-14ubuntu1+24.3 [28.5 MB]
+Get:16 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-i686-win32 amd64 10.3.0-14ubuntu1+24.3 [11.4 MB]
+Get:17 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 binutils-mingw-w64-x86-64 amd64 2.38-3ubuntu1+9build1 [3308 kB]
+Get:18 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 mingw-w64-x86-64-dev all 8.0.0-1 [3684 kB]
+Get:19 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-x86-64-posix-runtime amd64 10.3.0-14ubuntu1+24.3 [12.8 MB]
+Get:20 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-x86-64-posix amd64 10.3.0-14ubuntu1+24.3 [28.7 MB]
+Get:21 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-x86-64-posix amd64 10.3.0-14ubuntu1+24.3 [11.6 MB]
+Get:22 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-x86-64-win32-runtime amd64 10.3.0-14ubuntu1+24.3 [12.8 MB]
+Get:23 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-x86-64-win32 amd64 10.3.0-14ubuntu1+24.3 [28.7 MB]
+Get:24 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-x86-64-win32 amd64 10.3.0-14ubuntu1+24.3 [11.6 MB]
+Get:25 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-i686 all 10.3.0-14ubuntu1+24.3 [186 kB]
+Get:26 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64-x86-64 all 10.3.0-14ubuntu1+24.3 [186 kB]
+Get:27 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 g++-mingw-w64 all 10.3.0-14ubuntu1+24.3 [186 kB]
+Get:28 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-i686 all 10.3.0-14ubuntu1+24.3 [187 kB]
+Get:29 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64-x86-64 all 10.3.0-14ubuntu1+24.3 [187 kB]
+Get:30 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 gcc-mingw-w64 all 10.3.0-14ubuntu1+24.3 [186 kB]
+Get:31 http://azure.archive.ubuntu.com/ubuntu jammy/universe amd64 mingw-w64 all 8.0.0-1 [9052 B]
+Fetched 236 MB in 5s (50.4 MB/s)
+Selecting previously unselected package libjsoncpp25:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 263455 files and directories currently installed.)
+Preparing to unpack .../00-libjsoncpp25_1.9.5-3_amd64.deb ...
+Unpacking libjsoncpp25:amd64 (1.9.5-3) ...
+Selecting previously unselected package librhash0:amd64.
+Preparing to unpack .../01-librhash0_1.4.2-1ubuntu1_amd64.deb ...
+Unpacking librhash0:amd64 (1.4.2-1ubuntu1) ...
+Selecting previously unselected package dh-elpa-helper.
+Preparing to unpack .../02-dh-elpa-helper_2.0.9ubuntu1_all.deb ...
+Unpacking dh-elpa-helper (2.0.9ubuntu1) ...
+Selecting previously unselected package cmake-data.
+Preparing to unpack .../03-cmake-data_3.22.1-1ubuntu1.22.04.2_all.deb ...
+Unpacking cmake-data (3.22.1-1ubuntu1.22.04.2) ...
+Selecting previously unselected package cmake.
+Preparing to unpack .../04-cmake_3.22.1-1ubuntu1.22.04.2_amd64.deb ...
+Unpacking cmake (3.22.1-1ubuntu1.22.04.2) ...
+Selecting previously unselected package binutils-mingw-w64-i686.
+Preparing to unpack .../05-binutils-mingw-w64-i686_2.38-3ubuntu1+9build1_amd64.deb ...
+Unpacking binutils-mingw-w64-i686 (2.38-3ubuntu1+9build1) ...
+Selecting previously unselected package mingw-w64-common.
+Preparing to unpack .../06-mingw-w64-common_8.0.0-1_all.deb ...
+Unpacking mingw-w64-common (8.0.0-1) ...
+Selecting previously unselected package mingw-w64-i686-dev.
+Preparing to unpack .../07-mingw-w64-i686-dev_8.0.0-1_all.deb ...
+Unpacking mingw-w64-i686-dev (8.0.0-1) ...
+Selecting previously unselected package gcc-mingw-w64-base:amd64.
+Preparing to unpack .../08-gcc-mingw-w64-base_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-base:amd64 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-i686-posix-runtime.
+Preparing to unpack .../09-gcc-mingw-w64-i686-posix-runtime_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-i686-posix-runtime (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-i686-posix.
+Preparing to unpack .../10-gcc-mingw-w64-i686-posix_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-i686-posix (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-i686-posix.
+Preparing to unpack .../11-g++-mingw-w64-i686-posix_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking g++-mingw-w64-i686-posix (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-i686-win32-runtime.
+Preparing to unpack .../12-gcc-mingw-w64-i686-win32-runtime_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-i686-win32-runtime (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-i686-win32.
+Preparing to unpack .../13-gcc-mingw-w64-i686-win32_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-i686-win32 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-i686-win32.
+Preparing to unpack .../14-g++-mingw-w64-i686-win32_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking g++-mingw-w64-i686-win32 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package binutils-mingw-w64-x86-64.
+Preparing to unpack .../15-binutils-mingw-w64-x86-64_2.38-3ubuntu1+9build1_amd64.deb ...
+Unpacking binutils-mingw-w64-x86-64 (2.38-3ubuntu1+9build1) ...
+Selecting previously unselected package mingw-w64-x86-64-dev.
+Preparing to unpack .../16-mingw-w64-x86-64-dev_8.0.0-1_all.deb ...
+Unpacking mingw-w64-x86-64-dev (8.0.0-1) ...
+Selecting previously unselected package gcc-mingw-w64-x86-64-posix-runtime.
+Preparing to unpack .../17-gcc-mingw-w64-x86-64-posix-runtime_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-x86-64-posix-runtime (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-x86-64-posix.
+Preparing to unpack .../18-gcc-mingw-w64-x86-64-posix_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-x86-64-posix (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-x86-64-posix.
+Preparing to unpack .../19-g++-mingw-w64-x86-64-posix_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking g++-mingw-w64-x86-64-posix (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-x86-64-win32-runtime.
+Preparing to unpack .../20-gcc-mingw-w64-x86-64-win32-runtime_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-x86-64-win32-runtime (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-x86-64-win32.
+Preparing to unpack .../21-gcc-mingw-w64-x86-64-win32_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking gcc-mingw-w64-x86-64-win32 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-x86-64-win32.
+Preparing to unpack .../22-g++-mingw-w64-x86-64-win32_10.3.0-14ubuntu1+24.3_amd64.deb ...
+Unpacking g++-mingw-w64-x86-64-win32 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-i686.
+Preparing to unpack .../23-g++-mingw-w64-i686_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking g++-mingw-w64-i686 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64-x86-64.
+Preparing to unpack .../24-g++-mingw-w64-x86-64_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking g++-mingw-w64-x86-64 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package g++-mingw-w64.
+Preparing to unpack .../25-g++-mingw-w64_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking g++-mingw-w64 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-i686.
+Preparing to unpack .../26-gcc-mingw-w64-i686_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking gcc-mingw-w64-i686 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64-x86-64.
+Preparing to unpack .../27-gcc-mingw-w64-x86-64_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking gcc-mingw-w64-x86-64 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package gcc-mingw-w64.
+Preparing to unpack .../28-gcc-mingw-w64_10.3.0-14ubuntu1+24.3_all.deb ...
+Unpacking gcc-mingw-w64 (10.3.0-14ubuntu1+24.3) ...
+Selecting previously unselected package mingw-w64.
+Preparing to unpack .../29-mingw-w64_8.0.0-1_all.deb ...
+Unpacking mingw-w64 (8.0.0-1) ...
+Setting up binutils-mingw-w64-x86-64 (2.38-3ubuntu1+9build1) ...
+Setting up gcc-mingw-w64-base:amd64 (10.3.0-14ubuntu1+24.3) ...
+Setting up gcc-mingw-w64-i686-posix-runtime (10.3.0-14ubuntu1+24.3) ...
+Setting up dh-elpa-helper (2.0.9ubuntu1) ...
+Setting up libjsoncpp25:amd64 (1.9.5-3) ...
+Setting up binutils-mingw-w64-i686 (2.38-3ubuntu1+9build1) ...
+Setting up gcc-mingw-w64-x86-64-win32-runtime (10.3.0-14ubuntu1+24.3) ...
+Setting up gcc-mingw-w64-i686-win32-runtime (10.3.0-14ubuntu1+24.3) ...
+Setting up librhash0:amd64 (1.4.2-1ubuntu1) ...
+Setting up cmake-data (3.22.1-1ubuntu1.22.04.2) ...
+Setting up mingw-w64-common (8.0.0-1) ...
+Setting up mingw-w64-x86-64-dev (8.0.0-1) ...
+Setting up gcc-mingw-w64-x86-64-posix-runtime (10.3.0-14ubuntu1+24.3) ...
+Setting up gcc-mingw-w64-x86-64-posix (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: using /usr/bin/x86_64-w64-mingw32-gcc-posix to provide /usr/bin/x86_64-w64-mingw32-gcc (x86_64-w64-mingw32-gcc) in auto mode
+Setting up gcc-mingw-w64-x86-64-win32 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: using /usr/bin/x86_64-w64-mingw32-gcc-win32 to provide /usr/bin/x86_64-w64-mingw32-gcc (x86_64-w64-mingw32-gcc) in auto mode
+Setting up gcc-mingw-w64-x86-64 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: warning: forcing reinstallation of alternative /usr/bin/x86_64-w64-mingw32-gcc-win32 because link group x86_64-w64-mingw32-gcc is broken
+update-alternatives: warning: skip creation of /usr/bin/x86_64-w64-mingw32-gcc-8 because associated file /usr/bin/x86_64-w64-mingw32-gcc-8.3-win32 (of link group x86_64-w64-mingw32-gcc) doesn't exist
+Setting up mingw-w64-i686-dev (8.0.0-1) ...
+Setting up cmake (3.22.1-1ubuntu1.22.04.2) ...
+Setting up gcc-mingw-w64-i686-win32 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: using /usr/bin/i686-w64-mingw32-gcc-win32 to provide /usr/bin/i686-w64-mingw32-gcc (i686-w64-mingw32-gcc) in auto mode
+Setting up g++-mingw-w64-i686-win32 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: using /usr/bin/i686-w64-mingw32-g++-win32 to provide /usr/bin/i686-w64-mingw32-g++ (i686-w64-mingw32-g++) in auto mode
+Setting up g++-mingw-w64-x86-64-win32 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: using /usr/bin/x86_64-w64-mingw32-g++-win32 to provide /usr/bin/x86_64-w64-mingw32-g++ (x86_64-w64-mingw32-g++) in auto mode
+Setting up gcc-mingw-w64-i686-posix (10.3.0-14ubuntu1+24.3) ...
+Setting up g++-mingw-w64-x86-64-posix (10.3.0-14ubuntu1+24.3) ...
+Setting up gcc-mingw-w64-i686 (10.3.0-14ubuntu1+24.3) ...
+update-alternatives: warning: forcing reinstallation of alternative /usr/bin/i686-w64-mingw32-gcc-win32 because link group i686-w64-mingw32-gcc is broken
+update-alternatives: warning: skip creation of /usr/bin/i686-w64-mingw32-gcc-8 because associated file /usr/bin/i686-w64-mingw32-gcc-8.3-win32 (of link group i686-w64-mingw32-gcc) doesn't exist
+Setting up g++-mingw-w64-x86-64 (10.3.0-14ubuntu1+24.3) ...
+Setting up gcc-mingw-w64 (10.3.0-14ubuntu1+24.3) ...
+Setting up g++-mingw-w64-i686-posix (10.3.0-14ubuntu1+24.3) ...
+Setting up g++-mingw-w64-i686 (10.3.0-14ubuntu1+24.3) ...
+Setting up g++-mingw-w64 (10.3.0-14ubuntu1+24.3) ...
+Setting up mingw-w64 (8.0.0-1) ...
+Processing triggers for man-db (2.10.2-1) ...
+Not building database; man-db/auto-update is not 'true'.
+Processing triggers for libc-bin (2.35-0ubuntu3.18) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+-- The C compiler identification is GNU 10.0.0
+-- The CXX compiler identification is GNU 10.0.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/i686-w64-mingw32-gcc-posix - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/i686-w64-mingw32-g++-posix - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Populating miniz
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/happy-engineering/happy-engineering/build/_deps/miniz-subbuild
+[ 11%] Creating directories for 'miniz-populate'
+[ 22%] Performing download step (git clone) for 'miniz-populate'
+Cloning into 'miniz-src'...
+HEAD is now at 293d4db Increment version
+[ 33%] Performing update step for 'miniz-populate'
+-- Already at requested tag: 3.0.2
+[ 44%] No patch step for 'miniz-populate'
+[ 55%] No configure step for 'miniz-populate'
+[ 66%] No build step for 'miniz-populate'
+[ 77%] No install step for 'miniz-populate'
+[ 88%] No test step for 'miniz-populate'
+[100%] Completed 'miniz-populate'
+[100%] Built target miniz-populate
+CMake Deprecation Warning at build/_deps/miniz-src/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR - Success
+CMake Warning (dev) at /usr/local/share/cmake-3.31/Modules/FetchContent.cmake:1953 (message):
+  Calling FetchContent_Populate(stb) is deprecated, call
+  FetchContent_MakeAvailable(stb) instead.  Policy CMP0169 can be set to OLD
+  to allow FetchContent_Populate(stb) to be called directly for now, but the
+  ability to call it with declared details will be removed completely in a
+  future version.
+Call Stack (most recent call first):
+  CMakeLists.txt:26 (FetchContent_Populate)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Populating stb
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/happy-engineering/happy-engineering/build/_deps/stb-subbuild
+[ 11%] Creating directories for 'stb-populate'
+[ 22%] Performing download step (git clone) for 'stb-populate'
+Cloning into 'stb-src'...
+HEAD is now at 9600522 stb_textedit: bump version number properly
+[ 33%] Performing update step for 'stb-populate'
+-- Already at requested ref: 9600522de53973336fa033a289858a4354cbb04c
+[ 44%] No patch step for 'stb-populate'
+[ 55%] No configure step for 'stb-populate'
+[ 66%] No build step for 'stb-populate'
+[ 77%] No install step for 'stb-populate'
+[ 88%] No test step for 'stb-populate'
+[100%] Completed 'stb-populate'
+[100%] Built target stb-populate
+-- Populating glfw
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/happy-engineering/happy-engineering/build/_deps/glfw-subbuild
+[ 11%] Creating directories for 'glfw-populate'
+[ 22%] Performing download step (git clone) for 'glfw-populate'
+Cloning into 'glfw-src'...
+HEAD is now at 7b6aead Documentation updates for 3.4 release
+[ 33%] Performing update step for 'glfw-populate'
+-- Already at requested tag: 3.4
+[ 44%] No patch step for 'glfw-populate'
+[ 55%] No configure step for 'glfw-populate'
+[ 66%] No build step for 'glfw-populate'
+[ 77%] No install step for 'glfw-populate'
+[ 88%] No test step for 'glfw-populate'
+[100%] Completed 'glfw-populate'
+[100%] Built target glfw-populate
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Including Win32 support
+-- Looking for dinput.h
+-- Looking for dinput.h - found
+-- Looking for xinput.h
+-- Looking for xinput.h - found
+CMake Warning (dev) at /usr/local/share/cmake-3.31/Modules/FetchContent.cmake:1953 (message):
+  Calling FetchContent_Populate(imgui) is deprecated, call
+  FetchContent_MakeAvailable(imgui) instead.  Policy CMP0169 can be set to
+  OLD to allow FetchContent_Populate(imgui) to be called directly for now,
+  but the ability to call it with declared details will be removed completely
+  in a future version.
+Call Stack (most recent call first):
+  CMakeLists.txt:60 (FetchContent_Populate)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Populating imgui
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/happy-engineering/happy-engineering/build/_deps/imgui-subbuild
+[ 11%] Creating directories for 'imgui-populate'
+[ 22%] Performing download step (git clone) for 'imgui-populate'
+Cloning into 'imgui-src'...
+HEAD is now at 97428e8 Version 1.91.9
+[ 33%] Performing update step for 'imgui-populate'
+-- Already at requested tag: v1.91.9
+[ 44%] No patch step for 'imgui-populate'
+[ 55%] No configure step for 'imgui-populate'
+[ 66%] No build step for 'imgui-populate'
+[ 77%] No install step for 'imgui-populate'
+[ 88%] No test step for 'imgui-populate'
+[100%] Completed 'imgui-populate'
+[100%] Built target imgui-populate
+-- Configuring done (6.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/runner/work/happy-engineering/happy-engineering/build
+[  1%] Building C object _deps/miniz-build/CMakeFiles/miniz.dir/miniz.c.obj
+[  3%] Building C object _deps/miniz-build/CMakeFiles/miniz.dir/miniz_zip.c.obj
+[  4%] Building C object _deps/miniz-build/CMakeFiles/miniz.dir/miniz_tinfl.c.obj
+[  6%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/context.c.obj
+[  7%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/init.c.obj
+[  9%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/input.c.obj
+[ 10%] Building C object _deps/miniz-build/CMakeFiles/miniz.dir/miniz_tdef.c.obj
+[ 12%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/monitor.c.obj
+[ 14%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/platform.c.obj
+[ 15%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/vulkan.c.obj
+[ 17%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/window.c.obj
+[ 18%] Linking C static library libminiz.a
+[ 20%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/egl_context.c.obj
+/usr/bin/i686-w64-mingw32-ar qc libminiz.a CMakeFiles/miniz.dir/miniz.c.obj CMakeFiles/miniz.dir/miniz_zip.c.obj CMakeFiles/miniz.dir/miniz_tinfl.c.obj CMakeFiles/miniz.dir/miniz_tdef.c.obj
+/usr/bin/i686-w64-mingw32-ranlib libminiz.a
+[ 20%] Built target miniz
+[ 21%] Building CXX object CMakeFiles/he_app.dir/src/app/archive.cpp.obj
+[ 23%] Building CXX object CMakeFiles/he_app.dir/src/app/workspace.cpp.obj
+[ 25%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/osmesa_context.c.obj
+[ 26%] Building CXX object CMakeFiles/he_app.dir/src/app/imgconv.cpp.obj
+[ 28%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/null_init.c.obj
+[ 29%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/null_monitor.c.obj
+[ 31%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/null_window.c.obj
+[ 32%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/null_joystick.c.obj
+[ 34%] Building CXX object CMakeFiles/he_app.dir/src/app/ai_session.cpp.obj
+[ 35%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_module.c.obj
+[ 37%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_time.c.obj
+[ 39%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_thread.c.obj
+[ 40%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_init.c.obj
+[ 42%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_joystick.c.obj
+[ 43%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_monitor.c.obj
+[ 45%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/win32_window.c.obj
+[ 46%] Building C object _deps/glfw-build/src/CMakeFiles/glfw.dir/wgl_context.c.obj
+[ 48%] Linking C static library libglfw3.a
+[ 50%] Building CXX object CMakeFiles/he_app.dir/src/app/process.cpp.obj
+[ 50%] Built target glfw
+[ 51%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/imgui.cpp.obj
+[ 53%] Building CXX object CMakeFiles/he_app.dir/src/app/toolbox.cpp.obj
+[ 54%] Building CXX object CMakeFiles/he_app.dir/src/app/installer.cpp.obj
+[ 56%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/imgui_draw.cpp.obj
+[ 57%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/imgui_tables.cpp.obj
+[ 59%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/imgui_widgets.cpp.obj
+[ 60%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/misc/cpp/imgui_stdlib.cpp.obj
+[ 62%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/backends/imgui_impl_glfw.cpp.obj
+[ 64%] Building CXX object CMakeFiles/imgui.dir/_deps/imgui-src/backends/imgui_impl_opengl3.cpp.obj
+[ 65%] Linking CXX static library libhe_app.a
+[ 65%] Built target he_app
+[ 67%] Linking CXX static library libimgui.a
+[ 67%] Built target imgui
+[ 68%] Generating embedded/icon_png.cpp
+[ 70%] Generating embedded/font_bold.cpp
+[ 71%] Generating embedded/font_medium.cpp
+[ 73%] Generating embedded/font_mono.cpp
+[ 75%] Generating embedded/font_regular.cpp
+[ 76%] Building CXX object CMakeFiles/happy-engineering.dir/src/main.cpp.obj
+[ 78%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/theme.cpp.obj
+[ 79%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/filebrowser.cpp.obj
+[ 81%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/app.cpp.obj
+[ 82%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/page_workspace.cpp.obj
+[ 84%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/page_plan.cpp.obj
+[ 85%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/page_memory.cpp.obj
+[ 87%] Building CXX object CMakeFiles/happy-engineering.dir/src/ui/page_tools.cpp.obj
+[ 89%] Building CXX object CMakeFiles/happy-engineering.dir/src/platform/platform_win.cpp.obj
+[ 90%] Building RC object CMakeFiles/happy-engineering.dir/src/app.rc.res
+[ 92%] Building CXX object CMakeFiles/happy-engineering.dir/embedded/icon_png.cpp.obj
+[ 93%] Building CXX object CMakeFiles/happy-engineering.dir/embedded/font_regular.cpp.obj
+[ 95%] Building CXX object CMakeFiles/happy-engineering.dir/embedded/font_medium.cpp.obj
+[ 96%] Building CXX object CMakeFiles/happy-engineering.dir/embedded/font_bold.cpp.obj
+[ 98%] Building CXX object CMakeFiles/happy-engineering.dir/embedded/font_mono.cpp.obj
+[100%] Linking CXX executable HappyEngineering.exe
+[100%] Built target happy-engineering
+  adding: HappyEngineering/ (stored 0%)
+  adding: HappyEngineering/README.md (deflated 48%)
+  adding: HappyEngineering/HappyEngineering.exe (deflated 63%)
+  adding: HappyEngineering/LICENSE (deflated 41%)
